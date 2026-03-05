@@ -6,8 +6,11 @@ function renderSidebar() {
     <button id="addContactBtn">Add contact</button>
   `;
 
-  document.getElementById("addContactBtn").onclick = () =>
+  const addBtn = document.getElementById("addContactBtn");
+  addBtn.onclick = () => {
+    console.log("Add contact clicked");
     showAddContactPanel();
+  };
 
   renderContactList();
 }

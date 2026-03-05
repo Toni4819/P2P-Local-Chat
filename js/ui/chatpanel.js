@@ -21,16 +21,17 @@ function showAddContactPanel() {
     const token = document.getElementById("newContactToken").value.trim();
     if (!name || !token) return;
 
-    addContact(name, token);
+    const c = addContact(name, token);
     renderSidebar();
-    showContactPanel(contacts[contacts.length - 1].id);
+    showContactPanel(c.id);
   };
 }
 
 function showContactPanel(id) {
   const c = getContact(id);
-  const main = document.getElementById("mainPanel");
+  if (!c) return;
 
+  const main = document.getElementById("mainPanel");
   main.innerHTML = `
     <h2>${c.name}</h2>
 
@@ -54,15 +55,19 @@ function showContactPanel(id) {
 
   document.getElementById("applyAnswerBtn").onclick = async () => {
     const token = document.getElementById("answerInput").value.trim();
+    if (!token) return;
     await applyAnswerToken(token);
   };
 
   document.getElementById("sendMsgBtn").onclick = () => {
     const msg = document.getElementById("chatMsg").value.trim();
-    if (channel && channel.readyState === "open") {
-      channel.send(profile.name + ": " + msg);
-      appendChat(profile.name, msg);
-      document.getElementById("chatMsg").value = "";
+    if (!msg) return;
+    if (!channel || channel.readyState !== "open") {
+      appendChat("System", "Channel not open");
+      return;
     }
+    channel.send(profile.name + ": " + msg);
+    appendChat(profile.name, msg);
+    document.getElementById("chatMsg").value = "";
   };
 }
