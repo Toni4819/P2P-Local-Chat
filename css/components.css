@@ -187,9 +187,10 @@ input {
   border-radius: 14px;
   font-size: 14px;
   line-height: 1.35;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
+
+  white-space: pre-line; /* garde les \n mais pas les espaces inutiles */
+  word-break: break-word; /* casse les mots trop longs */
+  overflow-wrap: break-word; /* sécurité */
   max-width: 80%;
 }
 
@@ -218,7 +219,8 @@ input {
 }
 
 .chatImage {
-  max-width: 180px;
-  border-radius: 8px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
   display: block;
 }
