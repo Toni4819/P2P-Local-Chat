@@ -1,12 +1,14 @@
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 #layout {
   display: flex;
   height: 100vh;
 }
+
+/* Sidebar */
 
 aside#sidebar {
   width: 260px;
@@ -16,6 +18,10 @@ aside#sidebar {
   overflow-y: auto;
 }
 
+#sidebar h2 {
+  margin-top: 0;
+}
+
 .contactItem {
   padding: 8px;
   margin-bottom: 6px;
@@ -23,11 +29,14 @@ aside#sidebar {
   border-radius: 6px;
   cursor: pointer;
   border: 1px solid #ddd;
+  font-size: 0.95rem;
 }
 
 .contactItem:hover {
   background: #e9e9e9;
 }
+
+/* Main panel */
 
 main#mainPanel {
   flex: 1;
@@ -35,25 +44,59 @@ main#mainPanel {
   overflow-y: auto;
 }
 
-textarea,
-input[type="text"] {
+h2, h3 {
+  margin-top: 0;
+}
+
+textarea, input[type="text"] {
   width: 100%;
   padding: 8px;
   margin: 6px 0;
   font-family: monospace;
+  box-sizing: border-box;
 }
 
 button {
   padding: 6px 12px;
   cursor: pointer;
+  margin-top: 4px;
 }
+
+pre {
+  background: #f0f0f0;
+  padding: 6px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+
+/* Chat */
 
 #chatLog {
   background: #111;
   color: #0f0;
   padding: 10px;
-  height: 250px;
+  height: 260px;
   overflow-y: auto;
   border-radius: 6px;
   margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+
+.tokenShort {
+  display: inline-block;
+  padding: 4px 6px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+#linkStatus {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.qrContainer {
+  margin: 10px 0;
 }
