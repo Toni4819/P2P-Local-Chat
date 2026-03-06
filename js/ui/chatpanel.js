@@ -34,15 +34,26 @@ function appendChat(sender, msg, timestamp = Date.now()) {
 }
 
 function renderMessageContent(text) {
-  if (text.match(/\.(gif|png|jpg|jpeg)$/i)) {
-    return `<img src="${text}" class="chatImage">`;
-  }
+  // On découpe le message en mots pour analyser chaque segment
+  const parts = text.split(/\s+/);
 
-  if (text.startsWith("http://") || text.startsWith("https://")) {
-    return `<a href="${text}" target="_blank">${text}</a>`;
-  }
+  const htmlParts = parts.map((part) => {
+    // GIF / PNG / JPG
+    if (part.match(/^https?:\/\/.*\.(gif|png|jpg|jpeg)$/i)) {
+      return `<img src="${part}" class="chatImage">`;
+    }
 
-  return escapeHtml(text);
+    // Lien normal
+    if (part.startsWith("http://") || part.startsWith("https://")) {
+      return `<a href="${part}" target="_blank">${part}</a>`;
+    }
+
+    // Texte normal
+    return escapeHtml(part);
+  });
+
+  // On recompose le message avec des espaces
+  return htmlParts.join(" ");
 }
 
 function escapeHtml(str) {
