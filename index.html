@@ -1,23 +1,23 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>P2P Chat – WebRTC</title>
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
+<head>
+  <meta charset="UTF-8">
+  <title>P2P Local Chat – WebRTC</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div id="layout">
+    <aside id="sidebar"></aside>
+    <main id="mainPanel"></main>
+  </div>
 
-  <body>
-    <div id="layout">
-      <aside id="sidebar"></aside>
-      <main id="mainPanel"></main>
-    </div>
+  <script src="js/profile.js"></script>
+  <script src="js/contacts.js"></script>
+  <script src="js/webrtc.js"></script>
 
-    <script src="js/profile.js"></script>
-    <script src="js/contacts.js"></script>
-    <script src="js/webrtc.js"></script>
-
-    <script src="js/ui/sidebar.js"></script>
-    <script src="js/ui/chatpanel.js"></script>
-    <script src="js/ui/main.js"></script>
-  </body>
+  <script src="js/ui/chatpanel.js"></script>
+  <script src="js/ui/sidebar.js"></script>
+  <script src="js/ui/main.js"></script>
+</body>
 </html>
