@@ -1,53 +1,70 @@
 let pc = null;
 let channel = null;
-let isOfferer = false;
+
+/* Création de la RTCPeerConnection */
 
 function createPeerConnection() {
   pc = new RTCPeerConnection();
 
-  pc.onicecandidate = (e) => {
-    if (!e.candidate) console.log("ICE complete");
-  };
-
-  pc.ondatachannel = (e) => {
-    channel = e.channel;
-    setupChannel();
+  pc.onicecandidate = e => {
+    if (!e.candidate) {
+      console.log("ICE gathering completed");
+    }
   };
 
   pc.onconnectionstatechange = () => {
-    console.log("State:", pc.connectionState);
+    console.log("Connection state:", pc.connectionState);
+  };
+
+  pc.ondatachannel = e => {
+    channel = e.channel;
+    setupChannel();
   };
 }
 
 function setupChannel() {
-  channel.onopen = () => appendChat("System", "Channel open");
-  channel.onmessage = (e) => appendChat("Peer", e.data);
+  channel.onopen = () => {
+    console.log("DataChannel opened");
+    appendChat("System", "Connection established");
+  };
+
+  channel.onmessage = e => {
+    appendChat("Peer", e.data);
+  };
+
+  channel.onclose = () => {
+    appendChat("System", "Connection closed");
+  };
 }
 
-async function waitICE() {
+async function waitForICE() {
   if (pc.iceGatheringState === "complete") return;
-  await new Promise((res) => {
-    pc.addEventListener("icegatheringstatechange", () => {
-      if (pc.iceGatheringState === "complete") res();
-    });
+  await new Promise(resolve => {
+    const check = () => {
+      if (pc.iceGatheringState === "complete") {
+        pc.removeEventListener("icegatheringstatechange", check);
+        resolve();
+      }
+    };
+    pc.addEventListener("icegatheringstatechange", check);
   });
 }
 
+/* Offer / Answer */
+
 async function createOfferToken() {
-  isOfferer = true;
   createPeerConnection();
   channel = pc.createDataChannel("chat");
   setupChannel();
 
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
-  await waitICE();
+  await waitForICE();
 
   return btoa(JSON.stringify(pc.localDescription));
 }
 
 async function createAnswerToken(offerToken) {
-  isOfferer = false;
   createPeerConnection();
 
   const offer = JSON.parse(atob(offerToken));
@@ -55,7 +72,7 @@ async function createAnswerToken(offerToken) {
 
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
-  await waitICE();
+  await waitForICE();
 
   return btoa(JSON.stringify(pc.localDescription));
 }
@@ -65,13 +82,17 @@ async function applyAnswerToken(answerToken) {
   await pc.setRemoteDescription(answer);
 }
 
+/* Attente de connexion + timeout */
+
 function waitForConnection() {
   return new Promise(resolve => {
     const check = () => {
       if (pc && pc.connectionState === "connected") {
         resolve(true);
+      } else if (pc && ["failed", "disconnected", "closed"].includes(pc.connectionState)) {
+        resolve(false);
       } else {
-        setTimeout(check, 100);
+        setTimeout(check, 150);
       }
     };
     check();
@@ -84,5 +105,3 @@ function waitForConnectionOrTimeout(ms) {
     new Promise(resolve => setTimeout(() => resolve(false), ms))
   ]);
 }
-
-
