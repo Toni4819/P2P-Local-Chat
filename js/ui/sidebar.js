@@ -6,9 +6,7 @@ function renderSidebar() {
     <button id="addContactBtn">Add contact</button>
   `;
 
-  const addBtn = document.getElementById("addContactBtn");
-  addBtn.onclick = () => {
-    console.log("Add contact clicked");
+  document.getElementById("addContactBtn").onclick = () => {
     showAddContactPanel();
   };
 
@@ -19,7 +17,7 @@ function renderContactList() {
   const list = document.getElementById("contactList");
   list.innerHTML = "";
 
-  contacts.forEach((c) => {
+  contacts.forEach(c => {
     const div = document.createElement("div");
     div.className = "contactItem";
     div.textContent = c.name;
