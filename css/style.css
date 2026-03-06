@@ -141,12 +141,14 @@ button {
 }
 
 .deleteBtn {
-  color: #b00;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
-  font-size: 1.3rem;
-  padding: 4px;
+  opacity: 0.7;
+  transition: 0.15s;
 }
 
 .deleteBtn:hover {
-  color: #f00;
+  opacity: 1;
+  filter: drop-shadow(0 0 2px #f00);
 }
