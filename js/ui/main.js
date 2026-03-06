@@ -28,3 +28,13 @@ window.onload = () => {
     console.log("Safari detected: PeerJS will start on first user action.");
   }
 };
+
+// Big QRcode view
+document.addEventListener("click", (e) => {
+  const qr = document.getElementById("qrcode");
+  if (!qr) return;
+
+  if (e.target === qr) {
+    qr.classList.toggle("expanded");
+  }
+});

@@ -27,23 +27,12 @@ function getContact(id) {
 }
 
 function confirmDeleteContact(contact) {
-  const overlay = document.getElementById("confirmOverlay");
-  const text = document.getElementById("confirmText");
-  const yes = document.getElementById("confirmYes");
-  const no = document.getElementById("confirmNo");
-
-  text.textContent = `Are you sure you want to delete "${contact.name}"?`;
-
-  overlay.style.display = "flex";
-
-  yes.onclick = () => {
-    deleteContact(contact.id);
-    overlay.style.display = "none";
-  };
-
-  no.onclick = () => {
-    overlay.style.display = "none";
-  };
+  showConfirmDialog(
+    `Are you sure you want to delete "${contact.name}"?`,
+    () => {
+      deleteContact(contact.id);
+    },
+  );
 }
 
 function deleteContact(id) {
@@ -53,4 +42,37 @@ function deleteContact(id) {
 
   const main = document.getElementById("mainPanel");
   main.innerHTML = "<h2>Select a contact</h2>";
+}
+
+function showConfirmDialog(message, onConfirm) {
+  // Overlay
+  const overlay = document.createElement("div");
+  overlay.id = "confirmOverlay";
+  overlay.style.display = "flex";
+
+  // Box
+  const box = document.createElement("div");
+  box.id = "confirmBox";
+
+  box.innerHTML = `
+    <h3>Delete contact?</h3>
+    <p>${message}</p>
+    <div class="confirmButtons">
+      <button id="confirmYes">Delete</button>
+      <button id="confirmNo">Cancel</button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  // Events
+  document.getElementById("confirmYes").onclick = () => {
+    onConfirm();
+    overlay.remove();
+  };
+
+  document.getElementById("confirmNo").onclick = () => {
+    overlay.remove();
+  };
 }

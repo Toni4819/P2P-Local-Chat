@@ -3,13 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <title>P2P Chat – PeerJS</title>
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/light.css" />
+    <link rel="stylesheet" href="css/dark.css" />
+
     <!-- PeerJS CDN -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <!-- QRCode -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
     <!-- Eruda for debugging -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Atma:wght@300;400;500;600;700&family=Sour+Gummy:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
     <script>
       eruda.init();
     </script>
@@ -27,15 +35,5 @@
     <script src="js/ui/sidebar.js"></script>
     <script src="js/ui/chatpanel.js"></script>
     <script src="js/ui/main.js"></script>
-    <div id="confirmOverlay">
-      <div id="confirmBox">
-        <h3>Delete contact?</h3>
-        <p id="confirmText"></p>
-        <div class="confirmButtons">
-          <button id="confirmYes">Delete</button>
-          <button id="confirmNo">Cancel</button>
-        </div>
-      </div>
-    </div>
   </body>
 </html>

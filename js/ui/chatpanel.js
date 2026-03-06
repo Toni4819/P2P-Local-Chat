@@ -27,11 +27,33 @@ function showProfilePanel() {
   `;
 
   if (localPeerId) {
-    new QRCode(document.getElementById("myQR"), {
-      text: link,
+    const qr = new QRCodeStyling({
       width: 200,
       height: 200,
+      type: "svg",
+      data: link,
+      dotsOptions: {
+        color: "#000",
+        type: "rounded",
+      },
+      backgroundOptions: {
+        color: "transparent",
+      },
     });
+
+    qr.append(document.getElementById("myQR"));
+
+    setTimeout(() => {
+      const svg = document.querySelector("#myQR svg");
+      if (!svg) return;
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const base64 = "data:image/svg+xml;base64," + btoa(svgData);
+
+      document.getElementById("myQR").innerHTML = `
+        <img id="qrcode" src="${base64}" alt="QR Code">
+      `;
+    }, 20);
   } else {
     document.getElementById("myQR").textContent = "PeerID not ready yet.";
   }

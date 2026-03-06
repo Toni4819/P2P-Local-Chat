@@ -1,0 +1,12 @@
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1d22;
+    --panel: #24262b;
+    --border: #333;
+    --text: #e5e5e5;
+    --text-light: #aaa;
+    --accent: #6d8bff;
+    --accent-hover: #8aa0ff;
+    --danger: #ff6b5e;
+  }
+}
