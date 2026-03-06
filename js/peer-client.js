@@ -10,7 +10,15 @@ let onPeerIncomingConnection = null;
 function initPeer(onReadyCb) {
   onPeerReady = onReadyCb;
 
-  peer = new Peer(); // utilise le serveur officiel par défaut
+  let savedId = localStorage.getItem("peerjs_id");
+  peer = new Peer(savedId || undefined);
+
+  peer.on("open", (id) => {
+    localStorage.setItem("peerjs_id", id);
+    localPeerId = id;
+    console.log("My PeerJS ID:", id);
+    if (onPeerReady) onPeerReady(id);
+  });
 
   peer.on("open", (id) => {
     localPeerId = id;
