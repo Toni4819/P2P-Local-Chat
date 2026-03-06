@@ -15,75 +15,78 @@ function appendChat(sender, msg) {
   log.appendChild(line);
   log.scrollTop = log.scrollHeight;
 }
-
-function showAddContactPanel() {
+async function showAddContactPanel() {
   const main = document.getElementById("mainPanel");
+
+  // 1) Générer ton offer
+  const myOfferToken = await createOfferToken();
+
   main.innerHTML = `
     <h2>Add contact</h2>
-    <label>Name</label>
-    <input id="newContactName" placeholder="Contact name">
 
-    <label>Offer token</label>
-    <textarea id="newContactToken" placeholder="Paste offer token"></textarea>
+    <h3>Your offer (share this)</h3>
+    <div id="myOfferQR"></div>
+    <pre>${myOfferToken}</pre>
 
-    <button id="saveNewContact">Save contact</button>
+    <h3>Partner offer</h3>
+    <textarea id="partnerOffer" placeholder="Paste partner's offer token"></textarea>
+
+    <button id="linkBtn">Link devices</button>
+
+    <div id="linkStatus"></div>
   `;
 
-  document.getElementById("saveNewContact").onclick = () => {
-    const name = document.getElementById("newContactName").value.trim();
-    const token = document.getElementById("newContactToken").value.trim();
+  // Générer QR
+  new QRCode(document.getElementById("myOfferQR"), {
+    text: myOfferToken,
+    width: 200,
+    height: 200
+  });
 
-    if (!name) return alert("Please enter a name");
-    if (!token) return alert("Please paste an offer token");
-    if (!validateOfferToken(token)) return alert("Invalid offer token");
-
-    const c = addContact(name, token);
-    renderSidebar();
-    showContactPanel(c.id);
-  };
-}
-
-function showContactPanel(id) {
-  const c = getContact(id);
-  const main = document.getElementById("mainPanel");
-
-  main.innerHTML = `
-    <h2>${c.name}</h2>
-
-    <button id="connectBtn">Connect to ${c.name}</button>
-
-    <h3>Paste answer from peer</h3>
-    <textarea id="answerInput" placeholder="Paste answer token"></textarea>
-    <button id="applyAnswerBtn">Apply answer</button>
-
-    <h3>Chat</h3>
-    <div id="chatLog"></div>
-    <textarea id="chatMsg" placeholder="Message..."></textarea>
-    <button id="sendMsgBtn">Send</button>
-  `;
-
-  document.getElementById("connectBtn").onclick = async () => {
-    const answerToken = await createAnswerToken(c.offerToken);
-    alert("Send this answer token to the peer:\n\n" + answerToken);
-  };
-
-  document.getElementById("applyAnswerBtn").onclick = async () => {
-    const token = document.getElementById("answerInput").value.trim();
-    if (!token) return alert("Paste an answer token");
-    await applyAnswerToken(token);
-  };
-
-  document.getElementById("sendMsgBtn").onclick = () => {
-    const msg = document.getElementById("chatMsg").value.trim();
-    if (!msg) return;
-
-    if (!channel || channel.readyState !== "open") {
-      appendChat("System", "Channel not open");
+  document.getElementById("linkBtn").onclick = async () => {
+    const partnerToken = document.getElementById("partnerOffer").value.trim();
+    if (!partnerToken) {
+      alert("Paste partner's offer token");
       return;
     }
 
-    channel.send(profile.name + ": " + msg);
-    appendChat(profile.name, msg);
-    document.getElementById("chatMsg").value = "";
+    const status = document.getElementById("linkStatus");
+    status.textContent = "Linking devices...";
+
+    // 2) Créer une answer pour l'offre du partenaire
+    let answerToken;
+    try {
+      answerToken = await createAnswerToken(partnerToken);
+    } catch (e) {
+      status.textContent = "Invalid partner token";
+      return;
+    }
+
+    // 3) Afficher l’answer à envoyer
+    status.innerHTML = `
+      <p>Send this answer token to your partner:</p>
+      <pre>${answerToken}</pre>
+      <p>Waiting for connection...</p>
+    `;
+
+    // 4) Attendre la connexion (10s max)
+    const connected = await waitForConnectionOrTimeout(10000);
+
+    if (!connected) {
+      status.textContent = "Failed to link devices (timeout)";
+      return;
+    }
+
+    // 5) Demander le nom du contact
+    const name = prompt("Enter contact name:");
+    if (!name) {
+      status.textContent = "Cancelled";
+      return;
+    }
+
+    // 6) Ajouter le contact
+    const c = addContact(name, partnerToken);
+    renderSidebar();
+    showContactPanel(c.id);
   };
 }
