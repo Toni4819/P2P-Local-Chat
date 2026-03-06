@@ -1,4 +1,6 @@
 window.onload = () => {
-  renderSidebar();
-  showAddContactPanel();
+  initPeer(() => {
+    renderSidebar();
+    showAddContactPanel();
+  });
 };

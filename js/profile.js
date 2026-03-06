@@ -1,4 +1,4 @@
-const profileKey = "p2p_profile";
+const profileKey = "p2p_profile_peerjs";
 
 function loadProfile() {
   const raw = localStorage.getItem(profileKey);

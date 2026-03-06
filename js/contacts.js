@@ -1,4 +1,4 @@
-const contactsKey = "p2p_contacts";
+const contactsKey = "p2p_contacts_peerjs";
 
 function loadContacts() {
   const raw = localStorage.getItem(contactsKey);
@@ -11,11 +11,11 @@ function saveContacts(list) {
 
 let contacts = loadContacts();
 
-function addContact(name, partnerOfferToken) {
+function addContact(name, peerId) {
   const c = {
     id: crypto.randomUUID(),
     name,
-    partnerOfferToken
+    peerId,
   };
   contacts.push(c);
   saveContacts(contacts);
@@ -23,5 +23,5 @@ function addContact(name, partnerOfferToken) {
 }
 
 function getContact(id) {
-  return contacts.find(c => c.id === id);
+  return contacts.find((c) => c.id === id);
 }

@@ -17,10 +17,10 @@ function renderContactList() {
   const list = document.getElementById("contactList");
   list.innerHTML = "";
 
-  contacts.forEach(c => {
+  contacts.forEach((c) => {
     const div = document.createElement("div");
     div.className = "contactItem";
-    div.textContent = c.name;
+    div.textContent = c.name + " (" + c.peerId.slice(0, 6) + "…)";
     div.onclick = () => showContactPanel(c.id);
     list.appendChild(div);
   });
