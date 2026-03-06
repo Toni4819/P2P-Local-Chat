@@ -1,3 +1,5 @@
+/* Utils */
+
 function validateOfferToken(token) {
   try {
     const obj = JSON.parse(atob(token));
@@ -5,6 +7,15 @@ function validateOfferToken(token) {
   } catch {
     return false;
   }
+}
+
+function truncateToken(token, len = 12) {
+  if (token.length <= len) return token;
+  return token.slice(0, len) + "...";
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard?.writeText(text).catch(() => {});
 }
 
 function appendChat(sender, msg) {
@@ -15,18 +26,24 @@ function appendChat(sender, msg) {
   log.appendChild(line);
   log.scrollTop = log.scrollHeight;
 }
+
+/* Panneau Add contact */
+
 async function showAddContactPanel() {
   const main = document.getElementById("mainPanel");
 
-  // 1) Générer ton offer
+  // Générer ton offer
   const myOfferToken = await createOfferToken();
 
   main.innerHTML = `
     <h2>Add contact</h2>
 
     <h3>Your offer (share this)</h3>
-    <div id="myOfferQR"></div>
-    <pre>${myOfferToken}</pre>
+    <div class="qrContainer" id="myOfferQR"></div>
+    <div>
+      <span class="tokenShort" id="myOfferShort"></span>
+    </div>
+    <pre id="myOfferFull"></pre>
 
     <h3>Partner offer</h3>
     <textarea id="partnerOffer" placeholder="Paste partner's offer token"></textarea>
@@ -36,57 +53,124 @@ async function showAddContactPanel() {
     <div id="linkStatus"></div>
   `;
 
-  // Générer QR
-  new QRCode(document.getElementById("myOfferQR"), {
-    text: myOfferToken,
-    width: 200,
-    height: 200
-  });
+  // QR code pour ton offer
+  if (window.QRCode) {
+    new QRCode(document.getElementById("myOfferQR"), {
+      text: myOfferToken,
+      width: 200,
+      height: 200
+    });
+  }
+
+  // Token tronqué + copie
+  const shortSpan = document.getElementById("myOfferShort");
+  shortSpan.textContent = truncateToken(myOfferToken);
+  shortSpan.title = "Click to copy full token";
+  shortSpan.onclick = () => copyToClipboard(myOfferToken);
+
+  document.getElementById("myOfferFull").textContent = myOfferToken;
 
   document.getElementById("linkBtn").onclick = async () => {
     const partnerToken = document.getElementById("partnerOffer").value.trim();
+    const status = document.getElementById("linkStatus");
+
     if (!partnerToken) {
       alert("Paste partner's offer token");
       return;
     }
+    if (!validateOfferToken(partnerToken)) {
+      alert("Invalid partner offer token");
+      return;
+    }
 
-    const status = document.getElementById("linkStatus");
-    status.textContent = "Linking devices...";
+    status.textContent = `Testing connection to ${truncateToken(partnerToken)}…`;
 
-    // 2) Créer une answer pour l'offre du partenaire
+    // Créer une answer pour l'offre du partenaire
     let answerToken;
     try {
       answerToken = await createAnswerToken(partnerToken);
     } catch (e) {
-      status.textContent = "Invalid partner token";
+      status.textContent = "Error while creating answer (invalid offer?)";
       return;
     }
 
-    // 3) Afficher l’answer à envoyer
+    // Afficher l'answer à envoyer
     status.innerHTML = `
-      <p>Send this answer token to your partner:</p>
-      <pre>${answerToken}</pre>
-      <p>Waiting for connection...</p>
+      <p>Send this answer token to your partner and ask them to apply it.</p>
+      <div class="qrContainer" id="answerQR"></div>
+      <div>
+        <span class="tokenShort" id="answerShort"></span>
+      </div>
+      <pre id="answerFull"></pre>
+      <p>Waiting for connection (10s timeout)…</p>
     `;
 
-    // 4) Attendre la connexion (10s max)
+    // QR pour l'answer
+    if (window.QRCode) {
+      new QRCode(document.getElementById("answerQR"), {
+        text: answerToken,
+        width: 200,
+        height: 200
+      });
+    }
+
+    const answerShort = document.getElementById("answerShort");
+    answerShort.textContent = truncateToken(answerToken);
+    answerShort.title = "Click to copy full token";
+    answerShort.onclick = () => copyToClipboard(answerToken);
+
+    document.getElementById("answerFull").textContent = answerToken;
+
+    // Attendre la connexion
     const connected = await waitForConnectionOrTimeout(10000);
 
     if (!connected) {
-      status.textContent = "Failed to link devices (timeout)";
+      status.innerHTML += `<p><b>Result:</b> timeout or unreachable.</p>`;
       return;
     }
 
-    // 5) Demander le nom du contact
+    status.innerHTML += `<p><b>Result:</b> connection established.</p>`;
+
+    // Demander le nom du contact
     const name = prompt("Enter contact name:");
     if (!name) {
-      status.textContent = "Cancelled";
+      status.innerHTML += `<p>Contact not saved (no name).</p>`;
       return;
     }
 
-    // 6) Ajouter le contact
     const c = addContact(name, partnerToken);
     renderSidebar();
     showContactPanel(c.id);
+  };
+}
+
+/* Panneau contact : une fois lié → juste le chat */
+
+function showContactPanel(id) {
+  const c = getContact(id);
+  if (!c) return;
+
+  const main = document.getElementById("mainPanel");
+  main.innerHTML = `
+    <h2>Chat with ${c.name}</h2>
+
+    <div id="chatLog"></div>
+    <textarea id="chatMsg" placeholder="Message..."></textarea>
+    <button id="sendMsgBtn">Send</button>
+  `;
+
+  document.getElementById("sendMsgBtn").onclick = () => {
+    const msg = document.getElementById("chatMsg").value.trim();
+    if (!msg) return;
+
+    if (!channel || channel.readyState !== "open") {
+      appendChat("System", "Channel not open");
+      return;
+    }
+
+    const full = profile.name + ": " + msg;
+    channel.send(full);
+    appendChat(profile.name, msg);
+    document.getElementById("chatMsg").value = "";
   };
 }
