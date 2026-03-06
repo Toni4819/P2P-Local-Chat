@@ -24,13 +24,25 @@ function appendChat(sender, msg, timestamp = Date.now()) {
   } else {
     div.className = "msg " + (sender === profile.name ? "me" : "them");
     div.innerHTML = `
-      <div class="bubble">${escapeHtml(msg)}</div>
+      <div class="bubble">${renderMessageContent(msg)}</div>
       <div class="time">${new Date(timestamp).toLocaleTimeString()}</div>
     `;
   }
 
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+}
+
+function renderMessageContent(text) {
+  if (text.match(/\.(gif|png|jpg|jpeg)$/i)) {
+    return `<img src="${text}" class="chatImage">`;
+  }
+
+  if (text.startsWith("http://") || text.startsWith("https://")) {
+    return `<a href="${text}" target="_blank">${text}</a>`;
+  }
+
+  return escapeHtml(text);
 }
 
 function escapeHtml(str) {
@@ -156,11 +168,27 @@ function showContactPanel(id) {
   };
 }
 
+let lastSentTime = 0;
+const SEND_COOLDOWN = 800;
+
 function sendMessageFlow() {
+  const now = Date.now();
+  if (now - lastSentTime < SEND_COOLDOWN) {
+    return;
+  }
+  lastSentTime = now;
+
   const msgEl = document.getElementById("chatMsg");
+  const sendBtn = document.getElementById("sendMsgBtn");
+
   if (!msgEl) return;
   const msg = msgEl.value.trim();
   if (!msg) return;
+
+  if (sendBtn) sendBtn.disabled = true;
+  setTimeout(() => {
+    if (sendBtn) sendBtn.disabled = false;
+  }, SEND_COOLDOWN);
 
   const peerId = currentContact.peerId;
 
