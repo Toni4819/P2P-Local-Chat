@@ -1,10 +1,40 @@
-function appendChat(sender, msg) {
+/* -------- MESSAGE HISTORY -------- */
+
+function saveMessage(peerId, from, text, timestamp = Date.now()) {
+  const all = JSON.parse(localStorage.getItem("messages") || "{}");
+  if (!all[peerId]) all[peerId] = [];
+  all[peerId].push({ from, text, timestamp });
+  localStorage.setItem("messages", JSON.stringify(all));
+}
+
+function getMessages(peerId) {
+  const all = JSON.parse(localStorage.getItem("messages") || "{}");
+  return all[peerId] || [];
+}
+
+function appendChat(sender, msg, timestamp = Date.now()) {
   const log = document.getElementById("chatLog");
   if (!log) return;
-  const line = document.createElement("div");
-  line.textContent = sender + ": " + msg;
-  log.appendChild(line);
+
+  const div = document.createElement("div");
+
+  if (sender === "System") {
+    div.className = "systemMsg";
+    div.textContent = msg;
+  } else {
+    div.className = "msg " + (sender === profile.name ? "me" : "them");
+    div.innerHTML = `
+      <div class="bubble">${escapeHtml(msg)}</div>
+      <div class="time">${new Date(timestamp).toLocaleTimeString()}</div>
+    `;
+  }
+
+  log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /* -------- PROFILE PANEL -------- */
@@ -113,6 +143,12 @@ function showContactPanel(id) {
     <button id="sendMsgBtn">Send</button>
   `;
 
+  // Charger l’historique
+  const history = getMessages(c.peerId);
+  history.forEach((m) => {
+    appendChat(m.from === "me" ? profile.name : c.name, m.text, m.timestamp);
+  });
+
   document.getElementById("sendMsgBtn").onclick = () => {
     ensurePeerReady(() => {
       sendMessageFlow();
@@ -135,6 +171,7 @@ function sendMessageFlow() {
       appendChat("System", "Connected");
       try {
         sendToPeer(peerId, msg);
+        saveMessage(peerId, "me", msg);
         appendChat(profile.name, msg);
         msgEl.value = "";
       } catch {
@@ -147,6 +184,7 @@ function sendMessageFlow() {
 
   try {
     sendToPeer(peerId, msg);
+    saveMessage(peerId, "me", msg);
     appendChat(profile.name, msg);
     msgEl.value = "";
   } catch {
@@ -157,7 +195,10 @@ function sendMessageFlow() {
 /* -------- PEER MESSAGE HANDLER -------- */
 
 onPeerMessage = (peerId, name, msg) => {
-  if (!currentContact) return;
-  if (currentContact.peerId !== peerId) return;
-  appendChat(name, msg);
+  saveMessage(peerId, "them", msg);
+  if (currentContact && currentContact.peerId === peerId) {
+    appendChat(name, msg);
+  } else {
+    console.log("Message reçu hors chat actif:", msg);
+  }
 };

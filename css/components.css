@@ -155,3 +155,59 @@ input {
   z-index: 9999;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
 }
+
+/* chat bubbles */
+#chatLog {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 300px;
+  overflow-y: auto;
+}
+
+.msg {
+  max-width: 70%;
+  display: flex;
+  flex-direction: column;
+}
+
+.msg.me {
+  align-self: flex-end;
+  text-align: right;
+}
+
+.msg.them {
+  align-self: flex-start;
+  text-align: left;
+}
+
+.bubble {
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.msg.me .bubble {
+  background: var(--accent);
+  color: white;
+}
+
+.msg.them .bubble {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.time {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.systemMsg {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 8px 0;
+}
