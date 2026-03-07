@@ -1,3 +1,5 @@
+import { PeerManager } from "./utils/PeerManager.js";
+
 export const SendManager = {
   pending: {},
 
@@ -7,7 +9,7 @@ export const SendManager = {
     const packet = {
       type: "msg",
       id,
-      peerId: localPeerId,
+      peerId: PeerManager.getLocalId(),
       name: profile.name,
       msg: rawMsg,
     };
@@ -37,7 +39,7 @@ export const SendManager = {
             PeerManager.send(p.peerId, {
               type: "msg",
               id,
-              peerId: localPeerId,
+              peerId: PeerManager.getLocalId(),
               name: profile.name,
               msg: p.rawMsg,
             });
