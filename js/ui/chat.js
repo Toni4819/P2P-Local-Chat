@@ -32,12 +32,14 @@ export function getMessages(peerId) {
 }
 
 export function updateMessageStatus(peerId, id, status) {
-  const messages = JSON.parse(
-    localStorage.getItem("messages_" + peerId) || "[]",
-  );
+  const all = JSON.parse(localStorage.getItem("messages") || "{}");
+  const messages = all[peerId] || [];
+
   const msg = messages.find((m) => m.id === id);
   if (msg) msg.status = status;
-  localStorage.setItem("messages_" + peerId, JSON.stringify(messages));
+
+  all[peerId] = messages;
+  localStorage.setItem("messages", JSON.stringify(all));
 
   if (currentChatPeerId === peerId) {
     const el = document.querySelector(`[data-msg-id="${id}"] .status`);
