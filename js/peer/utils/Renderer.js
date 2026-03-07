@@ -1,3 +1,8 @@
+import { FileHandler } from "../../ui/handlers/file.js";
+import { GifHandler } from "../../ui/handlers/gif.js";
+import { LinkHandler } from "../../ui/handlers/link.js";
+import { TextHandler } from "../../ui/handlers/text.js";
+
 export const Renderer = {
   render(parts) {
     return parts
