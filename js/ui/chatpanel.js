@@ -1,6 +1,39 @@
 let currentChatPeerId = null;
 let pendingRetries = {};
 
+function openChat(peerId, name) {
+  currentChatPeerId = peerId;
+
+  const el = document.querySelector(`[data-peerid="${peerId}"]`);
+  if (el) el.classList.remove("unread");
+
+  const box = document.getElementById("chatMessages");
+  if (!box) return;
+  box.innerHTML = "";
+
+  appendSystem(`Chat with ${name} <${peerId}>`);
+
+  const history = getMessages(peerId);
+  history.forEach((m) => {
+    appendMessage(m.from, m.text, m.timestamp, m.status);
+  });
+
+  const input = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("chatSend");
+
+  if (sendBtn) {
+    sendBtn.onclick = () => {
+      sendCurrentMessage();
+    };
+  }
+
+  if (input) {
+    input.onkeydown = (e) => {
+      if (e.key === "Enter") sendCurrentMessage();
+    };
+  }
+}
+
 /* -------- MESSAGE HISTORY -------- */
 
 function saveMessage(peerId, from, text, timestamp = Date.now()) {
