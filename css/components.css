@@ -228,3 +228,19 @@ input {
 .unread {
   background-color: rgba(255, 255, 255, 0.15) !important;
 }
+
+@keyframes unreadBlink {
+  0% {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    background-color: rgba(255, 255, 255, 0.35);
+  }
+  100% {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.unread.blink {
+  animation: unreadBlink 0.8s ease-in-out 3;
+}
