@@ -1,4 +1,5 @@
 import { PeerManager } from "./PeerManager.js";
+import { profile } from "../ui/profile.js";
 
 export const SendManager = {
   pending: {},
