@@ -64,7 +64,6 @@ function setupConn(conn) {
       return;
     }
 
-    // Auto-add
     let c = contacts.find((c) => c.peerId === data.peerId);
     if (!c) {
       c = addContact(data.name, data.peerId);
@@ -72,14 +71,32 @@ function setupConn(conn) {
       renderSidebar();
     }
 
-    // Auto-update nom
     if (c.name !== data.name) {
       c.name = data.name;
       saveContacts(contacts);
       renderSidebar();
     }
 
-    onPeerMessage && onPeerMessage(data.peerId, data.name, data.msg);
+    // --- PROTOCOL ---
+    if (data.type === "msg") {
+      conn.send(
+        JSON.stringify({
+          type: "ack",
+          id: data.id,
+          peerId: localPeerId,
+        }),
+      );
+
+      saveMessage(data.peerId, "them", data.msg, Date.now(), "reçu", data.id);
+
+      onPeerMessage && onPeerMessage(data.peerId, data.name, data.msg, data.id);
+      return;
+    }
+
+    if (data.type === "ack") {
+      onPeerAck && onPeerAck(data.peerId, data.id);
+      return;
+    }
   });
 
   conn.on("close", () => {
@@ -112,14 +129,18 @@ function isPeerConnected(peerId) {
   return !!(c && c.open);
 }
 
-function sendToPeer(peerId, msg) {
+function sendToPeer(peerId, text) {
   const conn = connections.get(peerId);
   if (!conn || !conn.open) throw new Error("Not connected");
-  conn.send(
-    JSON.stringify({
-      peerId: localPeerId,
-      name: profile.name,
-      msg,
-    }),
-  );
+
+  const packet = {
+    type: "msg",
+    id: crypto.randomUUID(),
+    peerId: localPeerId,
+    name: profile.name,
+    msg: text,
+  };
+
+  conn.send(JSON.stringify(packet));
+  return packet.id;
 }

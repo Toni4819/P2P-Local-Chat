@@ -76,3 +76,11 @@ function showConfirmDialog(message, onConfirm) {
     overlay.remove();
   };
 }
+function flashContact(peerId) {
+  const el = document.querySelector(`[data-peerid="${peerId}"]`);
+  if (!el) return;
+
+  el.classList.add("flash");
+
+  setTimeout(() => el.classList.remove("flash"), 1500);
+}

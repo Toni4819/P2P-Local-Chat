@@ -60,6 +60,21 @@ function escapeHtml(str) {
   return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function updateMessageStatus(peerId, id, newStatus) {
+  const all = JSON.parse(localStorage.getItem("messages") || "{}");
+  if (!all[peerId]) return;
+
+  const msg = all[peerId].find((m) => m.id === id);
+  if (!msg) return;
+
+  msg.status = newStatus;
+  localStorage.setItem("messages", JSON.stringify(all));
+
+  if (currentContact && currentContact.peerId === peerId) {
+    showContactPanel(currentContact.id);
+  }
+}
+
 /* -------- PROFILE PANEL -------- */
 
 function showProfilePanel() {
@@ -182,62 +197,83 @@ function showContactPanel(id) {
 let lastSentTime = 0;
 const SEND_COOLDOWN = 800;
 
+let isBusySending = false;
+let onPeerAck = null;
+
 function sendMessageFlow() {
   const now = Date.now();
-  if (now - lastSentTime < SEND_COOLDOWN) {
-    return;
-  }
+  if (now - lastSentTime < SEND_COOLDOWN) return;
   lastSentTime = now;
+
+  if (isBusySending) return;
 
   const msgEl = document.getElementById("chatMsg");
   const sendBtn = document.getElementById("sendMsgBtn");
-
   if (!msgEl) return;
+
   const msg = msgEl.value.trim();
   if (!msg) return;
 
-  if (sendBtn) sendBtn.disabled = true;
-  setTimeout(() => {
-    if (sendBtn) sendBtn.disabled = false;
-  }, SEND_COOLDOWN);
-
   const peerId = currentContact.peerId;
 
+  // cooldown bouton
+  if (sendBtn) sendBtn.disabled = true;
+  setTimeout(() => {
+    if (!isBusySending && sendBtn) sendBtn.disabled = false;
+  }, SEND_COOLDOWN);
+
+  isBusySending = true;
+
+  const finish = () => {
+    isBusySending = false;
+    if (sendBtn) sendBtn.disabled = false;
+  };
+
+  // --- SI PAS CONNECTÉ ---
   if (!isPeerConnected(peerId)) {
     appendChat("System", "Connecting…");
 
     connectToPeer(peerId, () => {
       appendChat("System", "Connected");
-      try {
-        sendToPeer(peerId, msg);
-        saveMessage(peerId, "me", msg);
-        appendChat(profile.name, msg);
-        msgEl.value = "";
-      } catch {
-        appendChat("System", "Failed to send");
-      }
+
+      const id = sendToPeer(peerId, msg);
+
+      saveMessage(peerId, "me", msg, Date.now(), "envoyé", id);
+      appendChat(profile.name, msg, Date.now(), "envoyé");
+      msgEl.value = "";
+
+      // attendre ACK
+      onPeerAck = (fromPeer, ackId) => {
+        if (ackId === id) {
+          updateMessageStatus(peerId, id, "reçu");
+          finish();
+        }
+      };
     });
 
     return;
   }
 
-  try {
-    sendToPeer(peerId, msg);
-    saveMessage(peerId, "me", msg);
-    appendChat(profile.name, msg);
-    msgEl.value = "";
-  } catch {
-    appendChat("System", "Failed to send");
-  }
+  // --- SI DÉJÀ CONNECTÉ ---
+  const id = sendToPeer(peerId, msg);
+
+  saveMessage(peerId, "me", msg, Date.now(), "envoyé", id);
+  appendChat(profile.name, msg, Date.now(), "envoyé");
+  msgEl.value = "";
+
+  onPeerAck = (fromPeer, ackId) => {
+    if (ackId === id) {
+      updateMessageStatus(peerId, id, "reçu");
+      finish();
+    }
+  };
 }
 
 /* -------- PEER MESSAGE HANDLER -------- */
 
-onPeerMessage = (peerId, name, msg) => {
-  saveMessage(peerId, "them", msg);
-  if (currentContact && currentContact.peerId === peerId) {
-    appendChat(name, msg);
-  } else {
-    console.log("Message reçu hors chat actif:", msg);
-  }
+onPeerMessage = (peerId, name, msg, id) => {
+  if (!currentContact) return;
+  if (currentContact.peerId !== peerId) return;
+
+  appendChat(name, msg, Date.now(), ""); // pas de status pour eux
 };

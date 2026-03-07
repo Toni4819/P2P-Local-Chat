@@ -2,19 +2,29 @@
 
 let currentChatPeerId = null;
 
-// --- stockage des messages dans localStorage ---
-// messages = { peerId: [ { from, text, timestamp }, ... ] }
-
-function saveMessage(peerId, from, text, timestamp = Date.now()) {
+function saveMessage(
+  peerId,
+  from,
+  text,
+  timestamp = Date.now(),
+  status = "envoi",
+  id = crypto.randomUUID(),
+) {
   const all = JSON.parse(localStorage.getItem("messages") || "{}");
+
   if (!all[peerId]) all[peerId] = [];
-  all[peerId].push({ from, text, timestamp });
-  localStorage.setItem("messages", JSON.stringify(all));
-}
 
-function getMessages(peerId) {
-  const all = JSON.parse(localStorage.getItem("messages") || "{}");
-  return all[peerId] || [];
+  all[peerId].push({
+    id,
+    from,
+    text,
+    timestamp,
+    status,
+  });
+
+  localStorage.setItem("messages", JSON.stringify(all));
+
+  return id;
 }
 
 // --- rendu des messages ---
@@ -105,14 +115,11 @@ function sendCurrentMessage() {
 // --- wiring avec peer-client.js ---
 
 onPeerMessage = (peerId, name, msg) => {
-  // log systématique
   saveMessage(peerId, "them", msg);
 
-  // si on est en train de chatter avec ce peer → on affiche
   if (currentChatPeerId === peerId) {
     appendMessage("them", msg);
   } else {
-    // plus tard : badge “non lu” sur le contact, etc.
-    console.log("Message reçu hors chat actif de", peerId, ":", msg);
+    flashContact(peerId);
   }
 };
