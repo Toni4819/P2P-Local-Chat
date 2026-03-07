@@ -1,4 +1,4 @@
-import { profile } from ".../ui/profile.js";
+import { profile } from "../../ui/profile.js";
 import { PeerManager } from "./PeerManager.js";
 
 export const SendManager = {
