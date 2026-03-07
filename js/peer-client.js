@@ -64,6 +64,7 @@ function setupConn(conn) {
       return;
     }
 
+    // --- Auto-add contact ---
     let c = contacts.find((c) => c.peerId === data.peerId);
     if (!c) {
       c = addContact(data.name, data.peerId);
@@ -71,13 +72,14 @@ function setupConn(conn) {
       renderSidebar();
     }
 
+    // --- Auto-update name ---
     if (c.name !== data.name) {
       c.name = data.name;
       saveContacts(contacts);
       renderSidebar();
     }
 
-    // --- PROTOCOL ---
+    // --- PROTOCOL: MESSAGE ---
     if (data.type === "msg") {
       conn.send(
         JSON.stringify({
@@ -88,8 +90,13 @@ function setupConn(conn) {
       );
 
       saveMessage(data.peerId, "them", data.msg, Date.now(), "reçu", data.id);
+      if (currentChatPeerId === data.peerId) {
+        onPeerMessage &&
+          onPeerMessage(data.peerId, data.name, data.msg, data.id);
+      } else {
+        flashContact(data.peerId);
+      }
 
-      onPeerMessage && onPeerMessage(data.peerId, data.name, data.msg, data.id);
       return;
     }
 

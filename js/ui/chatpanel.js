@@ -1,3 +1,5 @@
+let pendingRetries = {};
+
 /* -------- MESSAGE HISTORY -------- */
 
 function saveMessage(peerId, from, text, timestamp = Date.now()) {

@@ -29,16 +29,15 @@ function saveMessage(
 
 // --- rendu des messages ---
 
-function appendMessage(from, text, timestamp = Date.now()) {
+function appendMessage(from, text, timestamp, status) {
   const box = document.getElementById("chatMessages");
-  if (!box) return;
 
   const div = document.createElement("div");
   div.className = "msg " + (from === "me" ? "me" : "them");
 
   div.innerHTML = `
-    <div class="bubble">${escapeHtml(text)}</div>
-    <div class="time">${new Date(timestamp).toLocaleTimeString()}</div>
+    <div class="bubble">${renderMessageContent(text)}</div>
+    <div class="time">${formatTimestamp(timestamp)} · ${renderStatus(status)}</div>
   `;
 
   box.appendChild(div);
