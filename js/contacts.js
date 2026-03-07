@@ -80,10 +80,5 @@ function showConfirmDialog(message, onConfirm) {
 function flashContact(peerId) {
   const el = document.querySelector(`[data-peerid="${peerId}"]`);
   if (!el) return;
-
   el.classList.add("unread");
-
-  if (currentChatPeerId === peerId) {
-    el.classList.remove("unread");
-  }
 }

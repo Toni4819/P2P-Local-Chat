@@ -1,3 +1,4 @@
+let currentChatPeerId = null;
 let pendingRetries = {};
 
 /* -------- MESSAGE HISTORY -------- */
@@ -260,11 +261,15 @@ function sendMessageFlow() {
 /* -------- PEER MESSAGE HANDLER -------- */
 
 onPeerMessage = (peerId, name, msg, id) => {
+  // sauvegarde du message reçu
   saveMessage(peerId, "them", msg, Date.now(), "reçu", id);
 
+  // si le chat est ouvert → afficher immédiatement
   if (currentChatPeerId === peerId) {
     appendMessage("them", msg, Date.now(), "reçu");
-  } else {
+  }
+  // sinon → flash du contact
+  else {
     flashContact(peerId);
   }
 };

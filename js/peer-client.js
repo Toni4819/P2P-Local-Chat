@@ -74,7 +74,7 @@ function setupConn(conn) {
       renderSidebar();
     }
 
-    // --- Auto-update name ---
+    // --- Auto-update name (sans undefined) ---
     if (data.name && c.name !== data.name) {
       c.name = data.name;
       saveContacts(contacts);
@@ -83,6 +83,7 @@ function setupConn(conn) {
 
     // --- PROTOCOL: MESSAGE ---
     if (data.type === "msg") {
+      // envoyer ACK
       conn.send(
         JSON.stringify({
           type: "ack",
@@ -91,17 +92,23 @@ function setupConn(conn) {
         }),
       );
 
+      // sauvegarder le message reçu
       saveMessage(data.peerId, "them", data.msg, Date.now(), "reçu", data.id);
+
+      // si le chat est ouvert → afficher
       if (currentChatPeerId === data.peerId) {
         onPeerMessage &&
           onPeerMessage(data.peerId, data.name, data.msg, data.id);
-      } else {
+      }
+      // sinon → flash du contact
+      else {
         flashContact(data.peerId);
       }
 
       return;
     }
 
+    // --- PROTOCOL: ACK ---
     if (data.type === "ack") {
       onPeerAck && onPeerAck(data.peerId, data.id);
       return;
