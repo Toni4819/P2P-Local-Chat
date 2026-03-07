@@ -83,7 +83,6 @@ function flashContact(peerId) {
 
   el.classList.add("unread");
 
-  // Quand on ouvre le chat → on enlève
   if (currentChatPeerId === peerId) {
     el.classList.remove("unread");
   }

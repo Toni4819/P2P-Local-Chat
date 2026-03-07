@@ -260,10 +260,10 @@ function sendMessageFlow() {
 /* -------- PEER MESSAGE HANDLER -------- */
 
 onPeerMessage = (peerId, name, msg, id) => {
-  saveMessage(peerId, "them", msg, Date.now(), "received", id);
+  saveMessage(peerId, "them", msg, Date.now(), "reçu", id);
 
   if (currentChatPeerId === peerId) {
-    appendMessage("them", msg);
+    appendMessage("them", msg, Date.now(), "reçu");
   } else {
     flashContact(peerId);
   }
@@ -314,3 +314,31 @@ function renderStatus(status) {
       return "";
   }
 }
+
+// --- RETRY LOGIC ---
+setInterval(() => {
+  const now = Date.now();
+
+  for (const id in pendingRetries) {
+    const p = pendingRetries[id];
+
+    if (now - p.lastTry >= 15000) {
+      p.lastTry = now;
+
+      try {
+        const newId = sendToPeer(p.peerId, p.text);
+
+        updateMessageStatus(p.peerId, id, "envoyé");
+
+        onPeerAck = (fromPeer, ackId) => {
+          if (ackId === newId) {
+            updateMessageStatus(p.peerId, id, "reçu");
+            delete pendingRetries[id];
+          }
+        };
+      } catch {
+        updateMessageStatus(p.peerId, id, "echec");
+      }
+    }
+  }
+}, 1000);
