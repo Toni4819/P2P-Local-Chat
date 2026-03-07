@@ -234,15 +234,8 @@ function sendCurrentMessage() {
 
 /* -------- PEER MESSAGE HANDLER -------- */
 
-onPeerMessage = (peerId, name, msg, id) => {
-  const timestamp = Date.now();
-  saveMessage(peerId, "them", msg, timestamp, "received", id);
-
-  if (currentChatPeerId === peerId) {
-    appendMessage("them", msg, timestamp, "received");
-  } else {
-    flashContact(peerId);
-  }
+onPeerMessage = (peerId, name, rawMsg, id) => {
+  messageHandler.receive(peerId, name, rawMsg, id);
 };
 
 /* -------- RETRY LOGIC -------- */
