@@ -12,7 +12,7 @@ function handleAutoAddFromURL() {
   }
 
   renderSidebar();
-  showContactPanel(c.id);
+  openChat(c.peerId, c.name);
 }
 
 window.onload = () => {
@@ -20,21 +20,5 @@ window.onload = () => {
   handleAutoAddFromURL();
   showProfilePanel();
 
-  if (!isSafariBrowser()) {
-    // Desktop / Chrome / Firefox → auto-start PeerJS
-    ensurePeerReady(() => {});
-  } else {
-    // Safari → on attend un tap (Send, etc.)
-    console.log("Safari detected: PeerJS will start on first user action.");
-  }
+  ensurePeerReady(() => {});
 };
-
-// Big QRcode view
-document.addEventListener("click", (e) => {
-  const qr = document.getElementById("qrcode");
-  if (!qr) return;
-
-  if (e.target === qr) {
-    qr.classList.toggle("expanded");
-  }
-});

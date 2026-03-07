@@ -1,13 +1,15 @@
-// chat.js
+// chat.js — système de chat moderne
 
 let currentChatPeerId = null;
+
+/* ---------------- MESSAGE STORAGE ---------------- */
 
 function saveMessage(
   peerId,
   from,
   text,
   timestamp = Date.now(),
-  status = "envoi",
+  status = "sending",
   id = crypto.randomUUID(),
 ) {
   const all = JSON.parse(localStorage.getItem("messages") || "{}");
@@ -23,14 +25,19 @@ function saveMessage(
   });
 
   localStorage.setItem("messages", JSON.stringify(all));
-
   return id;
 }
 
-// --- rendu des messages ---
+function getMessages(peerId) {
+  const all = JSON.parse(localStorage.getItem("messages") || "{}");
+  return all[peerId] || [];
+}
+
+/* ---------------- MESSAGE RENDERING ---------------- */
 
 function appendMessage(from, text, timestamp, status) {
   const box = document.getElementById("chatMessages");
+  if (!box) return;
 
   const div = document.createElement("div");
   div.className = "msg " + (from === "me" ? "me" : "them");
@@ -56,12 +63,7 @@ function appendSystem(text) {
   box.scrollTop = box.scrollHeight;
 }
 
-// petite protection pour le texte
-function escapeHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-// --- ouverture d’un chat avec un peer ---
+/* ---------------- CHAT OPENING ---------------- */
 
 function openChat(peerId, name) {
   currentChatPeerId = peerId;
@@ -83,11 +85,7 @@ function openChat(peerId, name) {
   const input = document.getElementById("chatInput");
   const sendBtn = document.getElementById("chatSend");
 
-  if (sendBtn) {
-    sendBtn.onclick = () => {
-      sendCurrentMessage();
-    };
-  }
+  if (sendBtn) sendBtn.onclick = sendCurrentMessage;
 
   if (input) {
     input.onkeydown = (e) => {
@@ -96,6 +94,8 @@ function openChat(peerId, name) {
   }
 }
 
+/* ---------------- SEND MESSAGE ---------------- */
+
 function sendCurrentMessage() {
   const input = document.getElementById("chatInput");
   if (!input || !currentChatPeerId) return;
@@ -103,24 +103,35 @@ function sendCurrentMessage() {
   const text = input.value.trim();
   if (!text) return;
 
+  const timestamp = Date.now();
+  const id = saveMessage(currentChatPeerId, "me", text, timestamp, "sending");
+
+  appendMessage("me", text, timestamp, "sending");
+  input.value = "";
+
   try {
-    sendToPeer(currentChatPeerId, text);
-    saveMessage(currentChatPeerId, "me", text);
-    appendMessage("me", text, Date.now(), "sending");
-    input.value = "";
-  } catch (e) {
-    console.error(e);
-    appendSystem("Failed to send message.");
+    const newId = sendToPeer(currentChatPeerId, text);
+
+    updateMessageStatus(currentChatPeerId, id, "sent");
+
+    onPeerAck = (fromPeer, ackId) => {
+      if (ackId === newId) {
+        updateMessageStatus(currentChatPeerId, id, "received");
+      }
+    };
+  } catch {
+    updateMessageStatus(currentChatPeerId, id, "failure");
   }
 }
 
-// --- wiring avec peer-client.js ---
+/* ---------------- RECEIVE MESSAGE ---------------- */
 
-onPeerMessage = (peerId, name, msg) => {
-  saveMessage(peerId, "them", msg);
+onPeerMessage = (peerId, name, msg, id) => {
+  const timestamp = Date.now();
+  saveMessage(peerId, "them", msg, timestamp, "received", id);
 
   if (currentChatPeerId === peerId) {
-    appendMessage("them", msg);
+    appendMessage("them", msg, timestamp, "received");
   } else {
     flashContact(peerId);
   }

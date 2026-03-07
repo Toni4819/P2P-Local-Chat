@@ -27,10 +27,8 @@ function renderContactList() {
       <img src="img/svg/trash-alt.svg" class="deleteBtn" data-id="${c.id}">
     `;
 
-    // Open chat
     div.querySelector(".contactName").onclick = () => showContactPanel(c.id);
 
-    // Delete with confirm
     div.querySelector(".deleteBtn").onclick = (e) => {
       e.stopPropagation();
       confirmDeleteContact(c);
