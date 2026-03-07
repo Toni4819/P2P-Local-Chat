@@ -16,8 +16,11 @@ export const PeerManager = {
       onReady && onReady(id);
     });
 
+    // Connexions entrantes
     this.peer.on("connection", (conn) => {
-      this.setupConn(conn);
+      conn.on("open", () => {
+        this.setupConn(conn);
+      });
     });
   },
 
@@ -33,9 +36,9 @@ export const PeerManager = {
     if (!this.ready) return null;
 
     const conn = this.peer.connect(peerId);
-    this.setupConn(conn);
 
     conn.on("open", () => {
+      this.setupConn(conn);
       onOpen && onOpen(conn);
     });
 
@@ -47,6 +50,7 @@ export const PeerManager = {
     if (!conn || !conn.open) throw new Error("Not connected");
     conn.send(JSON.stringify(data));
   },
+
   getLocalId() {
     return localPeerId;
   },

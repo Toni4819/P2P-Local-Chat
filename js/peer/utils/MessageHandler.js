@@ -32,23 +32,18 @@ export const MessageHandler = {
   receiveMessage(peerId, data) {
     const timestamp = Date.now();
 
-    // ACK immédiat
     PeerManager.send(peerId, {
       type: "ack",
       id: data.id,
       peerId: localPeerId,
     });
 
-    // Sauvegarde brute
     saveMessage(peerId, "them", data.msg, timestamp, "received", data.id);
 
-    // Parsing
     const parts = Parser.parse(data.msg);
 
-    // Rendu
     const html = Renderer.render(parts);
 
-    // Affichage
     if (currentChatPeerId === peerId) {
       appendMessage("them", html, timestamp, "received");
     } else {
