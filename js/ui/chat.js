@@ -188,20 +188,10 @@ export function openChat(peerId, name) {
   const input = document.getElementById("chatInput");
   const sendBtn = document.getElementById("chatSend");
 
-  // XOR lock
-  let lock = false;
-  const safeSend = () => {
-    if (lock) return;
-    lock = true;
-    sendCurrentMessage();
-    setTimeout(() => (lock = false), 0);
-  };
-
-  // Handlers
-  if (sendBtn) sendBtn.onclick = safeSend;
+  if (sendBtn) sendBtn.onclick = sendCurrentMessage;
   if (input) {
     input.onkeydown = (e) => {
-      if (e.key === "Enter") safeSend();
+      if (e.key === "Enter") sendCurrentMessage();
     };
   }
 }
@@ -225,13 +215,15 @@ function sendCurrentMessage() {
   const peerId = currentChatPeerId;
   const timestamp = Date.now();
 
+  // Save locally
   const id = saveMessage(peerId, "me", text, timestamp, "sending");
 
-  appendMessage("me", text, timestamp, "sending", id);
   input.value = "";
 
+  // Send via SendManager (handles retry + ACK)
   const newId = SendManager.send(peerId, text);
 
+  // If SendManager generated a different ID, sync it
   if (newId !== id) {
     updateMessageStatus(peerId, id, "sent");
   }
