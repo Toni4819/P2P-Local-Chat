@@ -42,7 +42,10 @@
 #mainPanel {
   flex: 1;
   padding: 30px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* CHAT LOG */
@@ -158,12 +161,17 @@ input {
 
 /* Chat container */
 #chatMessages {
+  flex: 1;
   padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  height: 300px;
   overflow-y: auto;
+  min-height: 0;
+}
+
+#chatInput {
+  flex: 1;
 }
 
 /* Message wrapper */
@@ -226,6 +234,16 @@ input {
   height: auto;
   border-radius: 10px;
   display: block;
+}
+
+#chatInputRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
 }
 
 .unread {
