@@ -215,17 +215,13 @@ function sendCurrentMessage() {
   const peerId = currentChatPeerId;
   const timestamp = Date.now();
 
-  // Save locally
   const id = saveMessage(peerId, "me", text, timestamp, "sending");
 
-  // Render immediately
-  appendMessage("me", text, timestamp, "sending");
+  appendMessage("me", text, timestamp, "sending", id);
   input.value = "";
 
-  // Send via SendManager (handles retry + ACK)
   const newId = SendManager.send(peerId, text);
 
-  // If SendManager generated a different ID, sync it
   if (newId !== id) {
     updateMessageStatus(peerId, id, "sent");
   }
