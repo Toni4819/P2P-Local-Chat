@@ -19,8 +19,15 @@ export function renderSidebar() {
       </button>
 
       <div id="sidebarActions">
-        <img src="img/svg/add.svg" id="addContactIcon" class="iconOnly" title="Add contact">
-        <img src="img/svg/profile.svg" id="myProfileIcon" class="iconOnly" title="My profile">
+        <div class="actionBtn">
+          <img src="img/svg/add.svg" class="iconOnly">
+          <span class="actionLabel">Add contact</span>
+        </div>
+
+        <div class="actionBtn">
+          <img src="img/svg/profile.svg" class="iconOnly">
+          <span class="actionLabel">My profile</span>
+        </div>
       </div>
     </div>
 
@@ -116,5 +123,6 @@ function deleteContact(id) {
   saveContacts(newList);
   location.reload(); // simple et propre
 }
+
 
 
