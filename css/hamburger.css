@@ -4,18 +4,18 @@
   padding: 0;
   border: none;
   background: transparent;
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   cursor: pointer;
 }
 
-/* Barres de base */
+/* Les 3 barres */
 .hamburger .bar {
-  width: 22px;
-  height: 2px;
+  width: 24px;
+  height: 3px;
   border-radius: 999px;
   background: var(--text);
   transition:
@@ -24,17 +24,16 @@
     width 0.2s ease;
 }
 
-/* État X */
+/* Animation vers X */
 .hamburger.open .middle {
   opacity: 0;
   width: 0;
 }
 
-/* On croise les deux autres */
 .hamburger.open .top {
-  transform: translateY(7px) rotate(45deg);
+  transform: translateY(9px) rotate(45deg);
 }
 
 .hamburger.open .bottom {
-  transform: translateY(-7px) rotate(-45deg);
+  transform: translateY(-9px) rotate(-45deg);
 }
