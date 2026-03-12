@@ -6,9 +6,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   const invitedPeer = url.searchParams.get("peer");
   const invitedName = url.searchParams.get("name");
 
-  // === 0) Si Peer tourne déjà → ignorer tout le startup ===
-  if (PeerManager.peer && localPeerId) {
-    console.log("PeerJS already loaded, skipping startup");
+  // === 0) Vérifier si PeerJS tourne déjà ===
+  if (PeerManager.peer && PeerManager.peer.id) {
+    console.log("Peer déjà actif → startup ignoré");
     window.appStart();
     return;
   }
@@ -79,7 +79,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       history.replaceState({}, "", url.pathname);
 
     } catch (err) {
-      console.error("PeerJS starting error:", err);
+      console.error("Impossible de démarrer PeerJS:", err);
     }
   };
 });
