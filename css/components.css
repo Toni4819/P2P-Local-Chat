@@ -1,6 +1,7 @@
 /* MAIN PANEL */
 #mainPanel {
   flex: 1;
+  min-width: 0;
   padding: 20px;
   display: flex;
   flex-direction: column;
