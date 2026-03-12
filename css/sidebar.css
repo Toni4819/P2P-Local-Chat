@@ -32,13 +32,16 @@
 
 #sidebarHeader {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 12px;
 }
 
+/* Actions (add, profile) */
 #sidebarActions {
   display: flex;
-  align-items: center;
+  flex-direction: column; /* toujours vertical */
+  align-items: flex-start;
   gap: 10px;
 }
 
