@@ -19,12 +19,12 @@ export function renderSidebar() {
       </button>
 
       <div id="sidebarActions">
-        <div class="actionBtn">
+        <div class="actionBtn" id="addContactBtn">
           <img src="img/svg/add.svg" class="iconOnly">
           <span class="actionLabel">Add contact</span>
         </div>
 
-        <div class="actionBtn">
+        <div class="actionBtn" id="myProfileBtn">
           <img src="img/svg/profile.svg" class="iconOnly">
           <span class="actionLabel">My profile</span>
         </div>
@@ -37,8 +37,8 @@ export function renderSidebar() {
   `;
 
   // === ACTION BUTTONS ===
-  document.getElementById("addContactIcon").onclick = showAddContactPanel;
-  document.getElementById("myProfileIcon").onclick = showProfilePanel;
+  document.getElementById("addContactBtn").onclick = showAddContactPanel;
+  document.getElementById("myProfileBtn").onclick = showProfilePanel;
 
   // === HAMBURGER TOGGLE ===
   const hamburger = document.getElementById("hamburger");
@@ -54,7 +54,7 @@ export function renderSidebar() {
       hamburger.classList.remove("open");
     } else {
       sb.classList.remove("closed");
-      hamburger.classList.remove("open");
+      hamburger.classList.add("open"); // si tu veux ouvert par défaut
     }
   }
 
@@ -63,7 +63,6 @@ export function renderSidebar() {
 
   renderContactList();
 }
-
 
 function renderContactList() {
   const list = document.getElementById("contactList");
@@ -121,8 +120,5 @@ function confirmDeleteContact(contact) {
 function deleteContact(id) {
   const newList = contacts.filter((c) => c.id !== id);
   saveContacts(newList);
-  location.reload(); // simple et propre
+  location.reload();
 }
-
-
-
