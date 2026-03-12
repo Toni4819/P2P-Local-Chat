@@ -9,16 +9,53 @@ import {
 
 export function renderSidebar() {
   const sb = document.getElementById("sidebar");
+
   sb.innerHTML = `
-    <h2>Contacts</h2>
+    <!-- HAMBURGER -->
+    <button id="hamburger" class="hamburger" aria-label="Toggle sidebar">
+      <span class="bar top"></span>
+      <span class="bar middle"></span>
+      <span class="bar bottom"></span>
+    </button>
+
+    <!-- ACTION BUTTONS -->
+    <div id="sidebarActions">
+      <img src="img/svg/add.svg" id="addContactIcon" class="iconOnly" title="Add contact">
+      <img src="img/svg/profile.svg" id="myProfileIcon" class="iconOnly" title="My profile">
+    </div>
+
+    <hr class="separator">
+
+    <!-- CONTACT LIST -->
     <div id="contactList"></div>
-    <button id="addContactBtn">Add contact</button>
-    <button id="myProfileBtn">My profile</button>
   `;
 
-  document.getElementById("addContactBtn").onclick = showAddContactPanel;
-  document.getElementById("myProfileBtn").onclick = showProfilePanel;
+  // === ACTION BUTTONS ===
+  document.getElementById("addContactIcon").onclick = showAddContactPanel;
+  document.getElementById("myProfileIcon").onclick = showProfilePanel;
 
+  // === HAMBURGER TOGGLE ===
+  const hamburger = document.getElementById("hamburger");
+  hamburger.onclick = () => {
+    sb.classList.toggle("closed");
+    hamburger.classList.toggle("open");
+  };
+
+  // === AUTO-CLOSE ON SMALL SCREENS ===
+  function autoSidebar() {
+    if (window.innerWidth < 700) {
+      sb.classList.add("closed");
+      hamburger.classList.remove("open");
+    } else {
+      sb.classList.remove("closed");
+      hamburger.classList.remove("open");
+    }
+  }
+
+  window.addEventListener("resize", autoSidebar);
+  autoSidebar();
+
+  // === CONTACTS ===
   renderContactList();
 }
 
@@ -78,5 +115,5 @@ function confirmDeleteContact(contact) {
 function deleteContact(id) {
   const newList = contacts.filter((c) => c.id !== id);
   saveContacts(newList);
-  location.reload(); // simple, propre, évite les états incohérents
+  location.reload(); // simple et propre
 }
