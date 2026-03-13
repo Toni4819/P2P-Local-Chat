@@ -14,6 +14,7 @@ import { renderSidebar } from "./ui/sidebar.js";
 import { showProfilePanel } from "./ui/chatpanel.js";
 import { initChat } from "./ui/chat.js";
 
+import { handleURLParams } from "./url-handler.js";
 // 3) Fonction de démarrage UI
 function appStart() {
   handleURLParams();
