@@ -67,8 +67,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  cursor: pointer;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: background 0.15s, border-color 0.15s;
 }
+
 
 .actionLabel {
   font-size: 14px;
@@ -76,10 +80,10 @@
   white-space: nowrap;
 }
 
-#sidebar.closed .actionLabel {
-  display: none;
+#sidebar.closed .actionBtn {
+  width: 100%;
+  justify-content: center;
 }
-
 
 /* ============================
    CONTACT LIST
