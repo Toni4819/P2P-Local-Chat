@@ -88,6 +88,7 @@
 .contactItem {
   padding: 10px 8px;
   border-radius: 8px;
+  border-dolor: rgba(255, 255, 255, 0.15);
   display: flex;
   justify-content: space-between;
   align-items: center;
