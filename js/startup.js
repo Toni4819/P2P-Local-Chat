@@ -6,9 +6,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   const invitedPeer = url.searchParams.get("peer");
   const invitedName = url.searchParams.get("name");
 
-  // === 0) Vérifier si PeerJS tourne déjà ===
-  if (PeerManager.peer && PeerManager.peer.id) {
-    console.log("Peer déjà actif → startup ignoré");
+  // === 0) Vérifier si un client PeerJS tourne déjà (sans créer Peer) ===
+  const peerAlreadyRunning = window.Peer?._instances?.length > 0;
+
+  if (peerAlreadyRunning) {
+    console.log("PeerJS déjà actif → startup ignoré");
     window.appStart();
     return;
   }
@@ -42,7 +44,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   // === 2) Auto-start OK (Android/PC) ===
-  if (id) {
+  if (PeerManager.peer?.id) {
     overlay.remove();
     window.appStart();
 
@@ -61,25 +63,21 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // === 3) Auto-start FAIL → iPad → attendre un tap ===
   overlay.onclick = async () => {
-    try {
-      const id2 = await PeerManager.init();
-      if (!id2) return; // iOS refuse encore → ne rien faire
+    await PeerManager.init();
 
-      overlay.remove();
-      window.appStart();
+    if (!PeerManager.peer?.id) return; // iOS refuse encore → ne rien faire
 
-      if (invitedPeer) {
-        PeerManager.connect(invitedPeer, () => {
-          window.openChat(invitedPeer, invitedName || "Unknown");
-        });
-      }
+    overlay.remove();
+    window.appStart();
 
-      url.searchParams.delete("peer");
-      url.searchParams.delete("name");
-      history.replaceState({}, "", url.pathname);
-
-    } catch (err) {
-      console.error("Impossible de démarrer PeerJS:", err);
+    if (invitedPeer) {
+      PeerManager.connect(invitedPeer, () => {
+        window.openChat(invitedPeer, invitedName || "Unknown");
+      });
     }
+
+    url.searchParams.delete("peer");
+    url.searchParams.delete("name");
+    history.replaceState({}, "", url.pathname);
   };
 });
