@@ -2,8 +2,7 @@
 import { PeerManager } from "./peer/utils/PeerManager.js";
 
 window.addEventListener("DOMContentLoaded", () => {
-
-  // 1) Vérifier si PeerJS tourne déjà (sans créer de Peer)
+  // 1) Vérifier si un client PeerJS existe déjà (sans en créer un nouveau)
   const peerAlreadyRunning =
     window.Peer &&
     Array.isArray(window.Peer._instances) &&
@@ -15,14 +14,14 @@ window.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  // 2) Charger ou créer peerjs_id (string simple)
+  // 2) Assurer un peerjs_id simple (string, pas de JSON)
   let peerId = localStorage.getItem("peerjs_id");
   if (!peerId) {
     peerId = crypto.randomUUID();
     localStorage.setItem("peerjs_id", peerId);
   }
 
-  // 3) Overlay iOS (nécessaire pour autoriser WebRTC)
+  // 3) Overlay (utile pour iOS, neutre ailleurs)
   const overlay = document.createElement("div");
   overlay.style = `
     position: fixed;
@@ -38,24 +37,30 @@ window.addEventListener("DOMContentLoaded", () => {
   overlay.textContent = "Click to start";
   document.body.appendChild(overlay);
 
-  // 4) Tentative auto-start (IMPORTANT : init doit recevoir une fonction)
+  let started = false;
+  const finishStart = (id) => {
+    if (started) return;
+    started = true;
+    overlay.remove();
+    if (id) localStorage.setItem("peerjs_id", id);
+    window.appStart();
+  };
+
+  // 4) Auto-start : PeerManager lit lui-même peerjs_id
   try {
     PeerManager.init((id) => {
-      // PeerJS prêt
-      overlay.remove();
-      localStorage.setItem("peerjs_id", id);
-      window.appStart();
+      console.log("PeerJS prêt (auto-start) avec ID :", id);
+      finishStart(id);
     });
   } catch (e) {
     console.warn("Auto-start PeerJS failed:", e);
   }
 
-  // 5) iOS → tap obligatoire si auto-start échoue
+  // 5) Tap obligatoire (iOS / cas où l’auto-start ne passe pas)
   overlay.onclick = () => {
     PeerManager.init((id) => {
-      overlay.remove();
-      localStorage.setItem("peerjs_id", id);
-      window.appStart();
+      console.log("PeerJS prêt (tap) avec ID :", id);
+      finishStart(id);
     });
   };
 });
