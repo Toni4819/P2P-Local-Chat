@@ -215,20 +215,16 @@ function sendCurrentMessage() {
   const peerId = currentChatPeerId;
   const timestamp = Date.now();
 
-  // Save locally
+  // 1) Créer le message dans le storage AVEC l’ID
   const id = saveMessage(peerId, "me", text, timestamp, "sending");
 
+  // 2) Effacer l’input
   input.value = "";
 
-  // Send via SendManager (handles retry + ACK)
-  const newId = SendManager.send(peerId, text, id);
-
-
-  // If SendManager generated a different ID, sync it
-  if (newId !== id) {
-    updateMessageStatus(peerId, id, "sent");
-  }
+  // 3) Envoyer via SendManager en lui donnant l’ID
+  SendManager.send(peerId, text, id);
 }
+
 
 /* ============================
    INIT CHAT (optional)
