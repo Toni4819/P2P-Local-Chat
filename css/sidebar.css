@@ -57,6 +57,12 @@
   opacity: 1;
 }
 
+@media (prefers-color-scheme: dark) {
+  .iconOnly {
+    filter: invert(1);
+  }
+}
+
 .actionBtn {
   display: flex;
   align-items: center;
