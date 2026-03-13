@@ -44,6 +44,7 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.remove();
     if (id) localStorage.setItem("peerjs_id", id);
     window.appStart();
+    return;
   };
 
   // 4) Auto-start : PeerManager lit lui-même peerjs_id
