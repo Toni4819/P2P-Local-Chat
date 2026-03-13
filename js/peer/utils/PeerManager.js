@@ -1,66 +1,63 @@
-import { MessageHandler } from "./MessageHandler.js";
+// startup.js
+import { PeerManager } from "./peer/utils/PeerManager.js";
 
-export let localPeerId = null;
+window.addEventListener("DOMContentLoaded", async () => {
 
-export const PeerManager = {
-  peer: null,
-  connections: new Map(),
-  ready: false,
-  initialized: false, // ← empêche la réinitialisation
+  // 1) Vérifier si PeerJS tourne déjà
+  const peerAlreadyRunning =
+    window.Peer &&
+    Array.isArray(window.Peer._instances) &&
+    window.Peer._instances.length > 0;
 
-  init(onReady) {
-    // Empêche PeerJS d'être recréé (bug iPad / double init)
-    if (this.initialized) {
-      console.warn("PeerManager.init() ignoré : déjà initialisé");
-      if (this.ready && onReady) onReady(localPeerId);
-      return;
-    }
-    this.initialized = true;
+  if (peerAlreadyRunning) {
+    window.appStart();
+    return;
+  }
 
-    this.peer = new Peer(localStorage.getItem("peerjs_id") || undefined);
+  // 2) Charger ou créer peerjs_id
+  let peerId = localStorage.getItem("peerjs_id");
+  if (!peerId) {
+    peerId = crypto.randomUUID();
+    localStorage.setItem("peerjs_id", peerId);
+  }
 
-    this.peer.on("open", (id) => {
-      localPeerId = id;
-      this.ready = true;
-      onReady && onReady(id);
-    });
+  // 3) Overlay iOS
+  const overlay = document.createElement("div");
+  overlay.style = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    z-index: 999999;
+  `;
+  overlay.textContent = "Click to start";
+  document.body.appendChild(overlay);
 
-    // Connexions entrantes
-    this.peer.on("connection", (conn) => {
-      conn.on("open", () => {
-        this.setupConn(conn);
-      });
-    });
-  },
+  // 4) Auto-start (IMPORTANT : init() doit recevoir une fonction)
+  try {
+    await PeerManager.init(() => {});
+  } catch {}
 
-  setupConn(conn) {
-    conn.on("data", (raw) => {
-      MessageHandler.receiveRaw(conn.peer, raw);
-    });
+  // 5) Auto-start OK
+  if (PeerManager.peer?.id) {
+    overlay.remove();
+    localStorage.setItem("peerjs_id", PeerManager.peer.id);
+    window.appStart();
+    return;
+  }
 
-    this.connections.set(conn.peer, conn);
-  },
+  // 6) iOS → tap
+  overlay.onclick = async () => {
+    await PeerManager.init(() => {});
 
-  connect(peerId, onOpen) {
-    if (!this.ready) return null;
+    if (!PeerManager.peer?.id) return;
 
-    const conn = this.peer.connect(peerId);
-
-    conn.on("open", () => {
-      this.setupConn(conn);
-      onOpen && onOpen(conn);
-    });
-
-    return conn;
-  },
-
-  send(peerId, data) {
-    const conn = this.connections.get(peerId);
-    if (!conn || !conn.open) throw new Error("Not connected");
-    conn.send(JSON.stringify(data));
-  },
-
-  getLocalId() {
-    return localPeerId;
-  },
-};
+    overlay.remove();
+    localStorage.setItem("peerjs_id", PeerManager.peer.id);
+    window.appStart();
+  };
+});
