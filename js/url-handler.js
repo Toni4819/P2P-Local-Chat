@@ -9,8 +9,8 @@ export function handleURLParams() {
   const name = params.get("name");
 
   if (!peer || !name) return;
-  addContact(peer, name);
-
+  
+  addContact(name, peer);
   openChat(peer, name);
 
   window.history.replaceState({}, "", window.location.pathname);
