@@ -1,27 +1,27 @@
 // startup.js
 import { PeerManager } from "./peer/utils/PeerManager.js";
 
-window.addEventListener("DOMContentLoaded", () => {
-  // 1) Vérifier si un client PeerJS existe déjà (sans en créer un nouveau)
+window.addEventListener("DOMContentLoaded", async () => {
+
+  // Vérifier si PeerJS tourne déjà
   const peerAlreadyRunning =
     window.Peer &&
     Array.isArray(window.Peer._instances) &&
     window.Peer._instances.length > 0;
 
   if (peerAlreadyRunning) {
-    console.log("PeerJS déjà actif → lancement UI");
     window.appStart();
     return;
   }
 
-  // 2) Assurer un peerjs_id simple (string, pas de JSON)
+  // Charger ou créer peerjs_id
   let peerId = localStorage.getItem("peerjs_id");
   if (!peerId) {
     peerId = crypto.randomUUID();
     localStorage.setItem("peerjs_id", peerId);
   }
 
-  // 3) Overlay (utile pour iOS, neutre ailleurs)
+  // Overlay iOS
   const overlay = document.createElement("div");
   overlay.style = `
     position: fixed;
@@ -37,30 +37,27 @@ window.addEventListener("DOMContentLoaded", () => {
   overlay.textContent = "Click to start";
   document.body.appendChild(overlay);
 
-  let started = false;
-  const finishStart = (id) => {
-    if (started) return;
-    started = true;
-    overlay.remove();
-    if (id) localStorage.setItem("peerjs_id", id);
-    window.appStart();
-  };
-
-  // 4) Auto-start : PeerManager lit lui-même peerjs_id
+  // Auto-start
   try {
-    PeerManager.init((id) => {
-      console.log("PeerJS prêt (auto-start) avec ID :", id);
-      finishStart(id);
-    });
-  } catch (e) {
-    console.warn("Auto-start PeerJS failed:", e);
+    await PeerManager.init(peerId);
+  } catch {}
+
+  // Auto-start OK
+  if (PeerManager.peer?.id) {
+    overlay.remove();
+    localStorage.setItem("peerjs_id", PeerManager.peer.id);
+    window.appStart();
+    return;
   }
 
-  // 5) Tap obligatoire (iOS / cas où l’auto-start ne passe pas)
-  overlay.onclick = () => {
-    PeerManager.init((id) => {
-      console.log("PeerJS prêt (tap) avec ID :", id);
-      finishStart(id);
-    });
+  // iOS → tap
+  overlay.onclick = async () => {
+    await PeerManager.init(peerId);
+
+    if (!PeerManager.peer?.id) return;
+
+    overlay.remove();
+    localStorage.setItem("peerjs_id", PeerManager.peer.id);
+    window.appStart();
   };
 });
