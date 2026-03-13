@@ -16,6 +16,7 @@ import { initChat } from "./ui/chat.js";
 
 // 3) Fonction de démarrage UI
 function appStart() {
+  handleURLParams();
   renderSidebar();
   showProfilePanel();
   initChat();
