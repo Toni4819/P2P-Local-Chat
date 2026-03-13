@@ -20,7 +20,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // === 2) Si aucune ID sauvegardée → en créer une ===
   if (!savedId) {
-    savedId = "peer_" + Math.random().toString(36).substring(2, 10);
+    savedId = "peer_" + crypto.randomUUID();
     localStorage.setItem("p2p_profile_peerjs", savedId);
     console.log("Nouvelle ID générée :", savedId);
   }
@@ -46,11 +46,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.body.appendChild(overlay);
 
   // === 3) Tentative auto-start avec ID forcée ===
-  let id = null;
   try {
-    id = await PeerManager.init(savedId);
+    await PeerManager.init(savedId);   // IMPORTANT : on passe UNIQUEMENT l'ID
   } catch (e) {
-    id = null;
+    console.warn("Auto-start PeerJS failed:", e);
   }
 
   // === 4) Auto-start OK ===
@@ -76,9 +75,9 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // === 5) Auto-start FAIL → iPad → attendre un tap ===
   overlay.onclick = async () => {
-    await PeerManager.init(savedId);
+    await PeerManager.init(savedId); // encore une fois : ID seule
 
-    if (!PeerManager.peer?.id) return; // iOS refuse encore
+    if (!PeerManager.peer?.id) return; // iOS refuse encore → ne rien faire
 
     overlay.remove();
 
