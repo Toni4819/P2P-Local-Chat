@@ -5,12 +5,11 @@ import { loadContacts } from "./contacts.js";
 import { loadProfile } from "./profile.js";
 import "./app.js";
 
+await Database.init();
+await loadContacts();
+await loadProfile();
 
 window.addEventListener("DOMContentLoaded", () => {
-  // 0) Load Database
-  await Database.init();
-  await loadContacts();
-  await loadProfile();
   // 1) Vérifier si un client PeerJS existe déjà (sans en créer un nouveau)
   const peerAlreadyRunning =
     window.Peer &&
