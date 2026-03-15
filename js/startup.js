@@ -3,6 +3,8 @@ import { PeerManager } from "./peer/utils/PeerManager.js";
 import { Database } from "./core/db.js";
 import { loadContacts } from "./contacts.js";
 import { loadProfile } from "./profile.js";
+import "./app.js";
+
 
 window.addEventListener("DOMContentLoaded", () => {
   // 0) Load Database
@@ -72,3 +74,5 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 });
+
+window.appStart();
