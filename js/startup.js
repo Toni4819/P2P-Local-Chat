@@ -1,8 +1,8 @@
 // startup.js
 import { PeerManager } from "./peer/utils/PeerManager.js";
 import { Database } from "./core/db.js";
-import { loadContacts } from "./contacts.js";
-import { loadProfile } from "./profile.js";
+import { loadContacts } from "./ui/contacts.js";
+import { loadProfile } from "./ui/profile.js";
 import "./app.js";
 
 await Database.init();
