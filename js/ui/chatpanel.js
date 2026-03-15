@@ -81,18 +81,18 @@ export function showAddContactPanel() {
 
   document.getElementById("saveContact").onclick = () => {
     const name = document.getElementById("newName").value.trim();
-    const peerId = document.getElementById("newPeerId").value.trim();
+    const peerid = document.getElementById("newPeerId").value.trim();
 
-    if (!name || !peerId) return alert("Missing fields");
+    if (!name || !peerid) return alert("Missing fields");
 
-    const c = addContact(name, peerId);
+    const c = addContact(name, peerid);
     renderSidebar();
-    openChat(c.peerId, c.name);
+    openChat(c.peerid, c.name);
   };
 }
 
 export function showContactPanel(id) {
   const c = getContact(id);
   if (!c) return;
-  openChat(c.peerId, c.name);
+  openChat(c.peerid, c.name);
 }
