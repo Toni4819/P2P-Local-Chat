@@ -3,17 +3,20 @@ export const Database = {
 
   async init() {
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open("P2P-Chat", 1);
+      const req = indexedDB.open("P2P-Chat", 2);
 
       req.onupgradeneeded = (event) => {
         const db = event.target.result;
-        const messages = db.createObjectStore("messages", { keyPath: "id" });
 
-        messages.createIndex("peerid", "peerid", { unique: false });
-        messages.createIndex("timestamp", "timestamp", { unique: false });
-        messages.createIndex("peerid_timestamp", ["peerid", "timestamp"], {
-          unique: false,
-        });
+        // MESSAGES
+        if (!db.objectStoreNames.contains("messages")) {
+          const messages = db.createObjectStore("messages", { keyPath: "id" });
+          messages.createIndex("peerid", "peerid", { unique: false });
+          messages.createIndex("timestamp", "timestamp", { unique: false });
+          messages.createIndex("peerid_timestamp", ["peerid", "timestamp"], {
+            unique: false,
+          });
+        }
 
         // PROFILE
         if (!db.objectStoreNames.contains("profile")) {
@@ -22,20 +25,8 @@ export const Database = {
 
         // CONTACTS
         if (!db.objectStoreNames.contains("contacts")) {
-          const contacts = db.createObjectStore("contacts", {
-            keyPath: "id",
-            autoIncrement: true,
-          });
+          const contacts = db.createObjectStore("contacts", { keyPath: "id" });
           contacts.createIndex("peerid", "peerid", { unique: true });
-        }
-
-        // MESSAGES
-        if (!db.objectStoreNames.contains("messages")) {
-          const messages = db.createObjectStore("messages", {
-            keyPath: "id",
-            autoIncrement: true,
-          });
-          messages.createIndex("contact_id", "contact_id");
         }
       };
 
@@ -57,13 +48,7 @@ export const Database = {
       const tx = this.db.transaction("contacts", "readwrite");
       const store = tx.objectStore("contacts");
 
-      const contact = {
-        id,
-        peerid,
-        name,
-        lastonline,
-        isonline,
-      };
+      const contact = { id, peerid, name, lastonline, isonline };
 
       const req = store.put(contact);
 
@@ -72,66 +57,9 @@ export const Database = {
     });
   },
 
-  async removeContact(id) {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction("contacts", "readwrite");
-      const store = tx.objectStore("contacts");
-
-      const req = store.delete(id);
-
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  },
-
-  async getContact(id = null, peerid = null, name = null) {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction("contacts", "readonly");
-      const store = tx.objectStore("contacts");
-
-      // Recherche par ID interne
-      if (id !== null) {
-        const req = store.get(id);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => reject(req.error);
-        return;
-      }
-
-      // Recherche par peerID
-      if (peerid !== null) {
-        const index = store.index("peerid");
-        const req = index.get(peerid);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => reject(req.error);
-        return;
-      }
-
-      // Recherche par nom (scan complet)
-      if (name !== null) {
-        const results = [];
-        const cursor = store.openCursor();
-
-        cursor.onsuccess = (e) => {
-          const cur = e.target.result;
-          if (cur) {
-            if (cur.value.name === name) results.push(cur.value);
-            cur.continue();
-          } else {
-            resolve(results);
-          }
-        };
-
-        cursor.onerror = () => reject(cursor.error);
-        return;
-      }
-
-      resolve(null);
-    });
-  },
-
   async deleteContact(id) {
     return new Promise((resolve, reject) => {
-      const tx = Database.db.transaction("contacts", "readwrite");
+      const tx = this.db.transaction("contacts", "readwrite");
       const store = tx.objectStore("contacts");
 
       const req = store.delete(id);
@@ -145,18 +73,17 @@ export const Database = {
   // MESSAGES
   // ---------------------------------------------------------
 
-static async saveMessage(msg) {
-  return new Promise((resolve, reject) => {
-    const tx = Database.db.transaction("messages", "readwrite");
-    const store = tx.objectStore("messages");
+  async saveMessage(msg) {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction("messages", "readwrite");
+      const store = tx.objectStore("messages");
 
-    const req = store.put(msg);
+      const req = store.put(msg);
 
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  },
 
   // ---------------------------------------------------------
   // PROFILE
