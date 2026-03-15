@@ -122,6 +122,19 @@ export const Database = {
     });
   },
 
+async deleteContact(id) {
+  return new Promise((resolve, reject) => {
+    const tx = Database.db.transaction("contacts", "readwrite");
+    const store = tx.objectStore("contacts");
+
+    const req = store.delete(id);
+
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+
   // ---------------------------------------------------------
   // MESSAGES
   // ---------------------------------------------------------

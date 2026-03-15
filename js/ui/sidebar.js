@@ -1,11 +1,11 @@
 // sidebar.js
 
-import { contacts, getContact, saveContacts } from "./contacts.js";
 import {
   showAddContactPanel,
-  showProfilePanel,
   showContactPanel,
+  showProfilePanel,
 } from "./chatpanel.js";
+import { contacts } from "./contacts.js";
 
 export function renderSidebar() {
   const sb = document.getElementById("sidebar");
@@ -119,6 +119,8 @@ function confirmDeleteContact(contact) {
 
 function deleteContact(id) {
   const newList = contacts.filter((c) => c.id !== id);
-  saveContacts(newList);
-  location.reload();
+  Database.deleteContact(id).then(() => {
+    contacts = contacts.filter((c) => c.id !== id);
+    renderSidebar();
+  });
 }
