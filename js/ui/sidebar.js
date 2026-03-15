@@ -71,10 +71,10 @@ function renderContactList() {
   contacts.forEach((c) => {
     const div = document.createElement("div");
     div.className = "contactItem";
-    div.dataset.peerid = c.peerId;
+    div.dataset.peerid = c.peerid;
 
     div.innerHTML = `
-      <span class="contactName">${c.name} (${c.peerId.slice(0, 6)}…)</span>
+      <span class="contactName">${c.name} (${c.peerid.slice(0, 6)}…)</span>
       <img src="img/svg/trash-alt.svg" class="deleteBtn" data-id="${c.id}">
     `;
 

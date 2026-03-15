@@ -28,13 +28,13 @@ export async function loadContacts() {
 }
 
 // Ajout d’un contact
-export async function addContact(name, peerId) {
+export async function addContact(name, peerid) {
   const contact = {
     id: crypto.randomUUID(),
     name,
-    peerid: peerId,
+    peerid,
     lastonline: null,
-    isonline: false
+    isonline: false,
   };
 
   await Database.addContact(
@@ -42,7 +42,7 @@ export async function addContact(name, peerId) {
     contact.peerid,
     contact.name,
     contact.lastonline,
-    contact.isonline
+    contact.isonline,
   );
 
   contacts.push(contact);
@@ -55,8 +55,8 @@ export function getContact(id) {
 }
 
 // Flash visuel dans la sidebar
-export function flashContact(peerId) {
-  const el = document.querySelector(`[data-peerid="${peerId}"]`);
+export function flashContact(peerid) {
+  const el = document.querySelector(`[data-peerid="${peerid}"]`);
   if (!el) return;
   el.classList.add("unread");
 }
