@@ -1,33 +1,60 @@
 // contacts.js
+import { Database } from "../core/db.js";
 
-export const contactsKey = "p2p_contacts_peerjs";
+export let contacts = [];
 
-export function loadContacts() {
-  const raw = localStorage.getItem(contactsKey);
-  return raw ? JSON.parse(raw) : [];
+// Chargement initial depuis IndexedDB
+export async function loadContacts() {
+  const tx = Database.db.transaction("contacts", "readonly");
+  const store = tx.objectStore("contacts");
+
+  return new Promise((resolve, reject) => {
+    const result = [];
+    const cursor = store.openCursor();
+
+    cursor.onsuccess = (e) => {
+      const cur = e.target.result;
+      if (cur) {
+        result.push(cur.value);
+        cur.continue();
+      } else {
+        contacts = result;
+        resolve(result);
+      }
+    };
+
+    cursor.onerror = () => reject(cursor.error);
+  });
 }
 
-export function saveContacts(list) {
-  localStorage.setItem(contactsKey, JSON.stringify(list));
-}
-
-export let contacts = loadContacts();
-
-export function addContact(name, peerId) {
-  const c = {
+// Ajout d’un contact
+export async function addContact(name, peerId) {
+  const contact = {
     id: crypto.randomUUID(),
     name,
-    peerId,
+    peerid: peerId,
+    lastonline: null,
+    isonline: false
   };
-  contacts.push(c);
-  saveContacts(contacts);
-  return c;
+
+  await Database.addContact(
+    contact.id,
+    contact.peerid,
+    contact.name,
+    contact.lastonline,
+    contact.isonline
+  );
+
+  contacts.push(contact);
+  return contact;
 }
 
+// Récupération par ID interne
 export function getContact(id) {
   return contacts.find((c) => c.id === id);
 }
 
+// Flash visuel dans la sidebar
 export function flashContact(peerId) {
   const el = document.querySelector(`[data-peerid="${peerId}"]`);
   if (!el) return;
