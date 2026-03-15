@@ -4,9 +4,10 @@ import {
   saveMessage,
 } from "../../ui/chat.js";
 
-import { flashContact, addContact, getContact } from "../../ui/contacts.js";
+import { flashContact, addContact } from "../../ui/contacts.js";
 import { renderSidebar } from "../../ui/sidebar.js";
 
+import { Database } from "../../core/db.js"; // 🔥 nécessaire
 import { AckManager } from "./AckManager.js";
 import { Parser } from "./Parser.js";
 import { PeerManager, localPeerId } from "./PeerManager.js";
@@ -42,32 +43,37 @@ export const MessageHandler = {
       peerId: localPeerId,
     });
 
-    // 2) AUTO‑ADD
-    let contact = getContact(null, peerid);
+    // 2) Lire le contact dans IndexedDB (🔥 correct)
+    let contact = await Database.getContact(null, peerid);
+
+    // 3) AUTO‑ADD si inconnu
     if (!contact) {
       const autoName = data.name || "Unknown " + peerid.slice(0, 6);
       contact = await addContact(autoName, peerid);
       renderSidebar();
     }
 
-    // Name Updater
-    if (!contact) {
-      const autoName = data.name || "Unknown " + peerid.slice(0, 6);
-      contact = await addContact(autoName, peerid);
-      renderSidebar();
-    } else if (data.name && contact.name !== data.name) {
-      await updateContactName(contact.id, data.name);
+    // 4) AUTO‑UPDATE du nom
+    if (data.name && contact.name !== data.name) {
+      contact.name = data.name;
+      await Database.addContact(
+        contact.id,
+        contact.peerid,
+        contact.name,
+        contact.lastonline,
+        contact.isonline,
+      );
       renderSidebar();
     }
 
-    // 3) Save message
+    // 5) Save message
     await saveMessage(peerid, "them", data.msg, timestamp, "received", data.id);
 
-    // 4) HTML render
+    // 6) HTML render
     const parts = Parser.parse(data.msg);
     const html = Renderer.render(parts);
 
-    // 5) Display
+    // 7) Display
     if (currentChatPeerId === peerid) {
       appendMessage("them", html, timestamp, "received", data.id);
     } else {
