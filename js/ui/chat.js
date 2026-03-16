@@ -4,6 +4,10 @@ import { PeerManager } from "../peer/utils/PeerManager.js";
 import { SendManager } from "../peer/utils/SendManager.js";
 import { showProfilePanel } from "./chatpanel.js";
 
+import { initTBcall } from "./ui/handlers/TBcall.js";
+import { initTBfile } from "./ui/handlers/TBfile.js";
+import { initTBvideo } from "./ui/handlers/TBvideo.js";
+
 export let currentChatPeerId = null;
 
 /* ============================
@@ -235,13 +239,12 @@ export function openChat(peerId, name) {
 
   // Load history
   getMessages(peerId).then((history) => {
-  history
-    .sort((a, b) => a.timestamp - b.timestamp) // ← tri chronologique
-    .forEach((m) =>
-      appendMessage(m.from, m.text, m.timestamp, m.status, m.id),
-    );
-});
-
+    history
+      .sort((a, b) => a.timestamp - b.timestamp) // ← tri chronologique
+      .forEach((m) =>
+        appendMessage(m.from, m.text, m.timestamp, m.status, m.id),
+      );
+  });
 
   const input = document.getElementById("chatInput");
   const sendBtn = document.getElementById("chatSend");
@@ -287,5 +290,7 @@ function sendCurrentMessage() {
 ============================ */
 
 export function initChat() {
-  // Nothing special for now
+  initTBfile();
+  initTBcall();
+  initTBvideo();
 }

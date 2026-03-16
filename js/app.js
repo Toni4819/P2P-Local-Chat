@@ -10,11 +10,6 @@ import "./peer/handlers/link.js";
 import "./peer/handlers/parser.js";
 import "./peer/handlers/text.js";
 
-// chat handlers
-import { initTBcall } from "./ui/handlers/TBcall.js";
-import { initTBfile } from "./ui/handlers/TBfile.js";
-import { initTBvideo } from "./ui/handlers/TBvideo.js";
-
 // 2) Importer l’UI
 import { initChat } from "./ui/chat.js";
 import { showProfilePanel } from "./ui/chatpanel.js";
@@ -27,9 +22,6 @@ function appStart() {
   renderSidebar();
   showProfilePanel();
   initChat();
-  initTBfile();
-  initTBcall();
-  initTBvideo();
 }
 
 // 4) On l’expose globalement
