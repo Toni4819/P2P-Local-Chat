@@ -20,7 +20,6 @@ import { handleURLParams } from "./url-handler.js";
 function appStart() {
   handleURLParams();
   renderSidebar();
-  showProfilePanel();
   initChat();
 }
 

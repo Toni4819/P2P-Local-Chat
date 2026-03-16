@@ -2,11 +2,6 @@
 
 import { PeerManager } from "../peer/utils/PeerManager.js";
 import { SendManager } from "../peer/utils/SendManager.js";
-import { showProfilePanel } from "./chatpanel.js";
-
-import { initTBcall } from "./handlers/TBcall.js";
-import { initTBfile } from "./handlers/TBfile.js";
-import { initTBvideo } from "./handlers/TBvideo.js";
 
 export let currentChatPeerId = null;
 
@@ -263,7 +258,13 @@ export function openChat(peerId, name) {
 
 function sendCurrentMessage() {
   if (!PeerManager.ready) {
-    showProfilePanel(true);
+    if (!PeerManager.ready) {
+      import("./chatpanel.js").then(({ showProfilePanel }) =>
+        showProfilePanel(true),
+      );
+      return;
+    }
+
     return;
   }
 
@@ -289,8 +290,26 @@ function sendCurrentMessage() {
    INIT CHAT (optional)
 ============================ */
 
+// ui/chat.js (ajouter/modifier)
 export function initChat() {
-  initTBfile();
-  initTBcall();
-  initTBvideo();
+  // importer chatpanel uniquement quand PeerManager est prêt (évite cycle d'import)
+  import("./chatpanel.js")
+    .then(({ showProfilePanel }) => {
+      // afficher le panneau profil au démarrage
+      showProfilePanel();
+    })
+    .catch((err) => {
+      console.warn("Impossible de charger chatpanel:", err);
+    });
+
+  // initialiser les handlers toolbox après l'affichage du profil
+  import("./handlers/TBfile.js")
+    .then(({ initTBfile }) => initTBfile())
+    .catch(() => {});
+  import("./handlers/TBcall.js")
+    .then(({ initTBcall }) => initTBcall())
+    .catch(() => {});
+  import("./handlers/TBvideo.js")
+    .then(({ initTBvideo }) => initTBvideo())
+    .catch(() => {});
 }
