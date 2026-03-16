@@ -1,7 +1,7 @@
 // TBfile.js
 // Système complet de transfert de fichiers façon AirDrop, sans import cyclique.
 
-import { PeerManager } from "../peer/utils/PeerManager.js";
+import { PeerManager } from "../../peer/utils/PeerManager.js";
 
 /* -----------------------------------------------------
    ÉTAT LOCAL
