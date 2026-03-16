@@ -12,7 +12,6 @@ import "./peer/handlers/text.js";
 
 // 2) Importer l’UI
 import { initChat } from "./ui/chat.js";
-import { showProfilePanel } from "./ui/chatpanel.js";
 import { renderSidebar } from "./ui/sidebar.js";
 
 import { handleURLParams } from "./url-handler.js";

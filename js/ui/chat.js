@@ -258,13 +258,9 @@ export function openChat(peerId, name) {
 
 function sendCurrentMessage() {
   if (!PeerManager.ready) {
-    if (!PeerManager.ready) {
-      import("./chatpanel.js").then(({ showProfilePanel }) =>
-        showProfilePanel(true),
-      );
-      return;
-    }
-
+    import("./chatpanel.js").then(({ showProfilePanel }) =>
+      showProfilePanel(true),
+    );
     return;
   }
 
