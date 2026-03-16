@@ -1,6 +1,10 @@
 
 import { MessageHandler } from "./MessageHandler.js";
 
+connectionState: "idle", // idle | connecting | connected | failed
+onConnectionStateChange: null,
+
+
 export let localPeerId = null;
 
 export const PeerManager = {
@@ -43,17 +47,39 @@ export const PeerManager = {
   },
 
   connect(peerId, onOpen) {
-    if (!this.ready) return null;
+  if (!this.ready) return null;
 
-    const conn = this.peer.connect(peerId);
+  // Empêche plusieurs connexions simultanées
+  if (this.connectionState === "connecting") return;
 
-    conn.on("open", () => {
-      this.setupConn(conn);
-      onOpen && onOpen(conn);
-    });
+  this.connectionState = "connecting";
+  this.onConnectionStateChange?.("connecting", peerId);
 
-    return conn;
-  },
+  const conn = this.peer.connect(peerId);
+
+  conn.on("open", () => {
+    this.setupConn(conn);
+    this.connectionState = "connected";
+    this.onConnectionStateChange?.("connected", peerId);
+    onOpen && onOpen(conn);
+  });
+
+  conn.on("error", (err) => {
+    this.connectionState = "failed";
+    this.onConnectionStateChange?.("failed", peerId, err);
+  });
+
+  // Secured timeout
+  setTimeout(() => {
+    if (this.connectionState === "connecting") {
+      this.connectionState = "failed";
+      this.onConnectionStateChange?.("failed", peerId, "timeout");
+    }
+  }, 6000);
+
+  return conn;
+}
+
 
   send(peerId, data) {
     const conn = this.connections.get(peerId);
@@ -63,5 +89,10 @@ export const PeerManager = {
 
   getLocalId() {
     return localPeerId;
+  },
+ 
+ isConnectedTo(peerId) {
+   const conn = this.connections.get(peerId);
+   return conn && conn.open;
   },
 }
