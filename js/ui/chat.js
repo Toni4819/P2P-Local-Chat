@@ -210,10 +210,13 @@ export function openChat(peerId, name) {
 
   // Load history
   getMessages(peerId).then((history) => {
-    history.forEach((m) =>
+  history
+    .sort((a, b) => a.timestamp - b.timestamp) // ← tri chronologique
+    .forEach((m) =>
       appendMessage(m.from, m.text, m.timestamp, m.status, m.id),
     );
-  });
+});
+
 
   const input = document.getElementById("chatInput");
   const sendBtn = document.getElementById("chatSend");
