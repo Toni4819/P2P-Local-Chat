@@ -41,17 +41,18 @@ export const PeerManager = {
     });
 
     const originalReceiveRaw = MessageHandler.receiveRaw;
+
     MessageHandler.receiveRaw = function (peerId, raw) {
       try {
         const msg = JSON.parse(raw);
 
         if (msg.type && msg.type.startsWith("file-")) {
-          handleFileMessage(peerId, msg);
+          handleIncoming(peerId, msg);
           return;
         }
       } catch {}
 
-      originalReceiveRaw(peerId, raw);
+      originalReceiveRaw.call(MessageHandler, peerId, raw);
     };
 
     this.connections.set(conn.peer, conn);
