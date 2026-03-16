@@ -90,7 +90,17 @@ export const PeerManager = {
 
   send(peerId, data) {
     const conn = this.connections.get(peerId);
-    if (!conn || !conn.open) throw new Error("Not connected");
+    if (!conn || !conn.open) {
+    // relance la connexion automatiquement
+    this.onConnectionStateChange?.("connecting", peerId);
+    this.connect(peerId, () => {
+      this.send(peerId, data); // renvoi automatique
+    });
+    return;
+  }
+
+
+    
     conn.send(JSON.stringify(data));
   },
 
