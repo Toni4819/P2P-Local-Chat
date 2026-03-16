@@ -8,8 +8,9 @@ export const PeerManager = {
   ready: false,
   initialized: false,
 
-  connectionState: "idle", // idle | connecting | connected | failed
+  connectionState: "idle", // idle | connecting | connected | failed | cancelled
   onConnectionStateChange: null,
+  currentConn: null, // ← pour pouvoir annuler
 
   init(onReady) {
     if (this.initialized) {
@@ -27,7 +28,6 @@ export const PeerManager = {
       onReady && onReady(id);
     });
 
-    // Connexions entrantes
     this.peer.on("connection", (conn) => {
       conn.on("open", () => {
         this.setupConn(conn);
@@ -43,18 +43,28 @@ export const PeerManager = {
     this.connections.set(conn.peer, conn);
   },
 
+  cancelConnection() {
+    if (this.connectionState === "connecting" && this.currentConn) {
+      try { this.currentConn.close(); } catch {}
+    }
+    this.connectionState = "cancelled";
+    this.onConnectionStateChange?.("cancelled");
+  },
+
   connect(peerId, onOpen) {
     if (!this.ready) return null;
 
-    // Empêche plusieurs connexions simultanées
     if (this.connectionState === "connecting") return;
 
     this.connectionState = "connecting";
     this.onConnectionStateChange?.("connecting", peerId);
 
     const conn = this.peer.connect(peerId);
+    this.currentConn = conn;
 
     conn.on("open", () => {
+      if (this.connectionState === "cancelled") return;
+
       this.setupConn(conn);
       this.connectionState = "connected";
       this.onConnectionStateChange?.("connected", peerId);
@@ -62,11 +72,12 @@ export const PeerManager = {
     });
 
     conn.on("error", (err) => {
+      if (this.connectionState === "cancelled") return;
+
       this.connectionState = "failed";
       this.onConnectionStateChange?.("failed", peerId, err);
     });
 
-    // Timeout sécurité
     setTimeout(() => {
       if (this.connectionState === "connecting") {
         this.connectionState = "failed";
