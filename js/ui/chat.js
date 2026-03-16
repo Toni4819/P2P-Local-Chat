@@ -4,9 +4,9 @@ import { PeerManager } from "../peer/utils/PeerManager.js";
 import { SendManager } from "../peer/utils/SendManager.js";
 import { showProfilePanel } from "./chatpanel.js";
 
-import { initTBcall } from "./ui/handlers/TBcall.js";
-import { initTBfile } from "./ui/handlers/TBfile.js";
-import { initTBvideo } from "./ui/handlers/TBvideo.js";
+import { initTBcall } from "./handlers/TBcall.js";
+import { initTBfile } from "./handlers/TBfile.js";
+import { initTBvideo } from "./handlers/TBvideo.js";
 
 export let currentChatPeerId = null;
 
