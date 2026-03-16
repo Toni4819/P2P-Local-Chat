@@ -230,3 +230,20 @@ input {
 .unread.blink {
   animation: unreadBlink 0.8s ease-in-out 3;
 }
+
+/* TOOLBOX */
+
+#chatHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#chatToolbox {
+  display: flex;
+  gap: 10px;
+}
+
+.toolBtn {
+  cursor: pointer;
+}

@@ -197,16 +197,41 @@ export function openChat(peerId, name) {
   if (!main) return;
 
   main.innerHTML = `
+  <div id="chatHeader">
     <h2>Chat with ${name}</h2>
-    <p>PeerID: ${peerId}</p>
 
-    <div id="chatMessages"></div>
+    <div id="chatToolbox">
+      <div class="toolBtn" data-tool="call">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.86 19.86 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.86 19.86 0 0 1 2.08 4.18 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.72c.12 1.05.37 2.07.73 3.03a2 2 0 0 1-.45 2.11L8.91 10.91a16 16 0 0 0 6 6l1.05-1.05a2 2 0 0 1 2.11-.45c.96.36 1.98.61 3.03.73A2 2 0 0 1 22 16.92z"/>
+        </svg>
+      </div>
 
-    <div id="chatInputRow">
-      <input id="chatInput" placeholder="Type a message…">
-      <button id="chatSend">Send</button>
+      <div class="toolBtn" data-tool="video">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M23 7l-7 5 7 5V7z"/>
+          <rect x="1" y="5" width="15" height="14" rx="2"/>
+        </svg>
+      </div>
+
+      <div class="toolBtn" data-tool="file">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <path d="M14 2v6h6"/>
+        </svg>
+      </div>
     </div>
-  `;
+  </div>
+
+  <p>PeerID: ${peerId}</p>
+
+  <div id="chatMessages"></div>
+
+  <div id="chatInputRow">
+    <input id="chatInput" placeholder="Type a message…">
+    <button id="chatSend">Send</button>
+  </div>
+`;
 
   // Load history
   getMessages(peerId).then((history) => {
