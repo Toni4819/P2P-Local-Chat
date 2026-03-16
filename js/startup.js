@@ -2,6 +2,7 @@
 import "./app.js";
 import { Database } from "./core/db.js";
 import { PeerManager } from "./peer/utils/PeerManager.js";
+import { attachPeerManagerCallbacks } from "./ui/chatpanel.js";
 import { loadContacts } from "./ui/contacts.js";
 import { loadProfile } from "./ui/profile.js";
 
@@ -58,6 +59,7 @@ try {
     console.log("PeerJS loaded (auto-start) with ID :", id);
     finishStart(id);
   });
+  attachPeerManagerCallbacks();
 } catch (e) {
   console.warn("Auto-start PeerJS failed:", e);
 }

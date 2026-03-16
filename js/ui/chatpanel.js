@@ -42,7 +42,6 @@ function injectConnectionOverlay() {
     UI.hideConnectingOverlay();
   };
 
-
   document.body.appendChild(div);
 }
 
@@ -69,19 +68,21 @@ const UI = {
     document.getElementById("connTitle").textContent = "Connection failed";
     document.getElementById("connPeer").textContent = "Click to close";
     o.style.display = "flex";
-  }
+  },
 };
 
 /* -----------------------------------------------------
    CONNECT UI ↔ PEERMANAGER
 ----------------------------------------------------- */
 
-PeerManager.onConnectionStateChange = (state, peerId, err) => {
-  if (state === "connecting") UI.showConnectingOverlay(peerId);
-  if (state === "connected") UI.hideConnectingOverlay();
-  if (state === "failed") UI.showConnectionFailed();
-  if (state === "cancelled") UI.hideConnectingOverlay();
-};
+export function attachPeerManagerCallbacks() {
+  PeerManager.onConnectionStateChange = (state, peerId, err) => {
+    if (state === "connecting") UI.showConnectingOverlay(peerId);
+    if (state === "connected") UI.hideConnectingOverlay();
+    if (state === "failed") UI.showConnectionFailed();
+    if (state === "cancelled") UI.hideConnectingOverlay();
+  };
+}
 
 /* -----------------------------------------------------
    PANELS
@@ -172,18 +173,17 @@ export function showAddContactPanel() {
     openChat(c.peerid, c.name);
 
     UI.showConnectingOverlay(c.name);
-     
+
     PeerManager.connect(c.peerid, () => {
       UI.hideConnectingOverlay();
     });
-
   };
 }
 
 export function showContactPanel(id) {
   const c = getContact(id);
   if (!c) return;
-   
+
   openChat(c.peerid, c.name);
 
   UI.showConnectingOverlay(c.name);
