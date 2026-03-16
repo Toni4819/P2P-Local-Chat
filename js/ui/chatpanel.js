@@ -39,7 +39,9 @@ function injectConnectionOverlay() {
   // Clic = annulation
   div.onclick = () => {
     PeerManager.cancelConnection();
+    UI.hideConnectingOverlay();
   };
+
 
   document.body.appendChild(div);
 }
@@ -167,23 +169,26 @@ export function showAddContactPanel() {
     const c = addContact(name, peerid);
     renderSidebar();
 
-    UI.showConnectingOverlay(c.name);
+    openChat(c.peerid, c.name);
 
+    UI.showConnectingOverlay(c.name);
+     
     PeerManager.connect(c.peerid, () => {
       UI.hideConnectingOverlay();
-      openChat(c.peerid, c.name);
     });
+
   };
 }
 
 export function showContactPanel(id) {
   const c = getContact(id);
   if (!c) return;
+   
+  openChat(c.peerid, c.name);
 
   UI.showConnectingOverlay(c.name);
 
   PeerManager.connect(c.peerid, () => {
     UI.hideConnectingOverlay();
-    openChat(c.peerid, c.name);
   });
 }
