@@ -1,10 +1,85 @@
 // chatpanel.js
 
-import { localPeerId } from "../peer/utils/PeerManager.js";
+import { localPeerId, PeerManager } from "../peer/utils/PeerManager.js";
 import { openChat } from "./chat.js";
 import { addContact, getContact } from "./contacts.js";
 import { profile, saveProfile } from "./profile.js";
 import { renderSidebar } from "./sidebar.js";
+
+/* -----------------------------------------------------
+   OVERLAY DE CONNEXION (injecté automatiquement)
+----------------------------------------------------- */
+
+function injectConnectionOverlay() {
+  if (document.getElementById("connectingOverlay")) return;
+
+  const div = document.createElement("div");
+  div.id = "connectingOverlay";
+  div.style = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    color: white;
+    font-size: 20px;
+    text-align: center;
+  `;
+
+  div.innerHTML = `
+    <div>
+      <div id="connTitle">Connecting…</div>
+      <div id="connPeer"></div>
+      <div id="connId"></div>
+    </div>
+  `;
+
+  document.body.appendChild(div);
+}
+
+injectConnectionOverlay();
+
+/* -----------------------------------------------------
+   UI HELPERS
+----------------------------------------------------- */
+
+const UI = {
+  showConnectingOverlay(name, peerId) {
+    const o = document.getElementById("connectingOverlay");
+    document.getElementById("connTitle").textContent = "Connecting to " + name;
+    document.getElementById("connPeer").textContent = "Name: " + name;
+    document.getElementById("connId").textContent = "Peer ID: " + peerId;
+    o.style.display = "flex";
+  },
+
+  hideConnectingOverlay() {
+    document.getElementById("connectingOverlay").style.display = "none";
+  },
+
+  showConnectionFailed() {
+    const o = document.getElementById("connectingOverlay");
+    document.getElementById("connTitle").textContent = "Connection failed";
+    document.getElementById("connPeer").textContent = "";
+    document.getElementById("connId").textContent = "";
+    o.style.display = "flex";
+  }
+};
+
+/* -----------------------------------------------------
+   CONNECT UI ↔ PEERMANAGER
+----------------------------------------------------- */
+
+PeerManager.onConnectionStateChange = (state, peerId, err) => {
+  if (state === "connecting") UI.showConnectingOverlay("Contact", peerId);
+  if (state === "connected") UI.hideConnectingOverlay();
+  if (state === "failed") UI.showConnectionFailed();
+};
+
+/* -----------------------------------------------------
+   PANELS
+----------------------------------------------------- */
 
 export function showProfilePanel() {
   const main = document.getElementById("mainPanel");
@@ -87,12 +162,26 @@ export function showAddContactPanel() {
 
     const c = addContact(name, peerid);
     renderSidebar();
-    openChat(c.peerid, c.name);
+
+    // Overlay + connexion + ouverture du chat
+    UI.showConnectingOverlay(c.name, c.peerid);
+
+    PeerManager.connect(c.peerid, () => {
+      UI.hideConnectingOverlay();
+      openChat(c.peerid, c.name);
+    });
   };
 }
 
 export function showContactPanel(id) {
   const c = getContact(id);
   if (!c) return;
-  openChat(c.peerid, c.name);
+
+  // Overlay + connexion + ouverture du chat
+  UI.showConnectingOverlay(c.name, c.peerid);
+
+  PeerManager.connect(c.peerid, () => {
+    UI.hideConnectingOverlay();
+    openChat(c.peerid, c.name);
+  });
 }
