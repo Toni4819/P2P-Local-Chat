@@ -7,7 +7,7 @@ import { profile, saveProfile } from "./profile.js";
 import { renderSidebar } from "./sidebar.js";
 
 /* -----------------------------------------------------
-   OVERLAY DE CONNEXION (injecté automatiquement)
+   INJECTION OVERLAY
 ----------------------------------------------------- */
 
 function injectConnectionOverlay() {
@@ -26,15 +26,20 @@ function injectConnectionOverlay() {
     color: white;
     font-size: 20px;
     text-align: center;
+    cursor: pointer;
   `;
 
   div.innerHTML = `
     <div>
       <div id="connTitle">Connecting…</div>
       <div id="connPeer"></div>
-      <div id="connId"></div>
     </div>
   `;
+
+  // Clic = annulation
+  div.onclick = () => {
+    PeerManager.cancelConnection();
+  };
 
   document.body.appendChild(div);
 }
@@ -46,11 +51,10 @@ injectConnectionOverlay();
 ----------------------------------------------------- */
 
 const UI = {
-  showConnectingOverlay(name, peerId) {
+  showConnectingOverlay(name) {
     const o = document.getElementById("connectingOverlay");
     document.getElementById("connTitle").textContent = "Connecting to " + name;
-    document.getElementById("connPeer").textContent = "Name: " + name;
-    document.getElementById("connId").textContent = "Peer ID: " + peerId;
+    document.getElementById("connPeer").textContent = "";
     o.style.display = "flex";
   },
 
@@ -61,8 +65,7 @@ const UI = {
   showConnectionFailed() {
     const o = document.getElementById("connectingOverlay");
     document.getElementById("connTitle").textContent = "Connection failed";
-    document.getElementById("connPeer").textContent = "";
-    document.getElementById("connId").textContent = "";
+    document.getElementById("connPeer").textContent = "Click to close";
     o.style.display = "flex";
   }
 };
@@ -72,9 +75,10 @@ const UI = {
 ----------------------------------------------------- */
 
 PeerManager.onConnectionStateChange = (state, peerId, err) => {
-  if (state === "connecting") UI.showConnectingOverlay("Contact", peerId);
+  if (state === "connecting") UI.showConnectingOverlay(peerId);
   if (state === "connected") UI.hideConnectingOverlay();
   if (state === "failed") UI.showConnectionFailed();
+  if (state === "cancelled") UI.hideConnectingOverlay();
 };
 
 /* -----------------------------------------------------
@@ -163,8 +167,7 @@ export function showAddContactPanel() {
     const c = addContact(name, peerid);
     renderSidebar();
 
-    // Overlay + connexion + ouverture du chat
-    UI.showConnectingOverlay(c.name, c.peerid);
+    UI.showConnectingOverlay(c.name);
 
     PeerManager.connect(c.peerid, () => {
       UI.hideConnectingOverlay();
@@ -177,8 +180,7 @@ export function showContactPanel(id) {
   const c = getContact(id);
   if (!c) return;
 
-  // Overlay + connexion + ouverture du chat
-  UI.showConnectingOverlay(c.name, c.peerid);
+  UI.showConnectingOverlay(c.name);
 
   PeerManager.connect(c.peerid, () => {
     UI.hideConnectingOverlay();
