@@ -185,10 +185,10 @@ export function openChat(peerId, name) {
   currentChatPeerId = peerId;
 
   if (!PeerManager.isConnectedTo(peerId)) {
-  PeerManager.connect(peerId, () => {
-    console.log("Connected to", peerId);
-  });
-}
+    PeerManager.connect(peerId, () => {
+      console.log("Connected to", peerId);
+    });
+  }
 
   const el = document.querySelector(`[data-peerid="${peerId}"]`);
   if (el) el.classList.remove("unread");
@@ -287,4 +287,8 @@ function sendCurrentMessage() {
 
 export function initChat() {
   //nothing
+}
+
+export function getCurrentChatPeerId() {
+  return currentChatPeerId;
 }

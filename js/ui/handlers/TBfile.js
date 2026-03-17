@@ -241,8 +241,8 @@ export function initTBfile() {
     if (!btn) return;
 
     // récupérer peerId dynamiquement pour éviter cycle
-    const { getLocalId } = await import("../chat.js");
-    const peerId = getLocalId();
+    const { getCurrentChatPeerId } = await import("../chat.js");
+    const peerId = getCurrentChatPeerId();
     if (!peerId) {
       createOverlay("File transfer", "<p>Open a chat first.</p>");
       return;
