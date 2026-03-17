@@ -79,7 +79,7 @@ export function initTBfile() {
       const id = await saveMessage(
         peerId,
         "me",
-        text,
+        plainText,
         timestamp,
         "sent",
         crypto.randomUUID(),
