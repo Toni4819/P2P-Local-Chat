@@ -184,11 +184,11 @@ export function appendSystem(text) {
 export function openChat(peerId, name) {
   currentChatPeerId = peerId;
 
-  if (!PeerManager.connections.has(peerId)) {
-    PeerManager.connect(peerId, () => {
-      console.log("Connected to", peerId);
-    });
-  }
+  if (!PeerManager.isConnectedTo(peerId)) {
+  PeerManager.connect(peerId, () => {
+    console.log("Connected to", peerId);
+  });
+}
 
   const el = document.querySelector(`[data-peerid="${peerId}"]`);
   if (el) el.classList.remove("unread");
