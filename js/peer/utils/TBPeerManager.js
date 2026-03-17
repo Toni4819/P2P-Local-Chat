@@ -1,71 +1,72 @@
-// TBPeerManager.js
-// Manager léger pour le protocole file-transfer (attaché par peerId uniquement)
+// js/peer/utils/TBPeerManager.js
+// Gestion du protocole file-transfer (simple, BLOB direct)
 
 import { PeerManager } from "./PeerManager.js";
 
 export const TBPeerManager = {
-  // callbacks que TBfile.js va assigner
   onRequest: null, // (peerId, requestId, fromName)
   onResponse: null, // (peerId, requestId, accepted)
   onMeta: null, // (peerId, requestId, meta)
   onCancel: null, // (peerId, requestId)
-  onChunkProgress: null, // (peerId, percent)
   onFile: null, // (peerId, file, requestId)
+  onProgress: null, // (peerId, percent)
 
-  // état local
-  _hookedConns: new Map(), // peerId -> { conn, handler }
-  _incoming: new Map(), // peerId -> { requestId, meta, chunks, received }
+  _hooked: new Map(), // peerId -> handler
+  _incoming: new Map(), // peerId -> { requestId, meta }
 
   /* -----------------------------------------------------
-     Attacher / détacher une connexion spécifique (appelé depuis l'UI)
+     Attacher une connexion spécifique
   ----------------------------------------------------- */
   attachToPeer(peerId) {
     const conn = PeerManager.connections.get(peerId);
     if (!conn) return false;
-    if (this._hookedConns.has(peerId)) return true;
-
-    const self = this;
+    if (this._hooked.has(peerId)) return true;
 
     const handler = (raw) => {
       try {
-        // JSON control messages (string)
+        // JSON control messages
         if (typeof raw === "string") {
           try {
             const msg = JSON.parse(raw);
-            if (msg && msg.type && msg.type.startsWith("file-")) {
-              self._route(peerId, msg);
+            if (msg.type && msg.type.startsWith("file-")) {
+              this._route(peerId, msg);
               return;
             }
           } catch {}
         }
 
-        // Binary chunk (ArrayBuffer or Blob)
-        if (raw instanceof ArrayBuffer || raw instanceof Blob) {
-          self._handleChunk(peerId, raw);
+        // BLOB = fichier complet
+        if (raw instanceof Blob) {
+          const incoming = this._incoming.get(peerId);
+          const requestId = incoming?.requestId || null;
+          this._incoming.delete(peerId);
+          this.onFile?.(peerId, raw, requestId);
           return;
         }
-      } catch (err) {
-        console.error("TBPeerManager handler error", err);
+      } catch (e) {
+        console.error("TBPeerManager handler error", e);
       }
     };
 
     conn.on("data", handler);
-    this._hookedConns.set(peerId, { conn, handler });
+    this._hooked.set(peerId, handler);
     return true;
   },
 
   detachFromPeer(peerId) {
-    const entry = this._hookedConns.get(peerId);
-    if (!entry) return;
-    try {
-      entry.conn.off && entry.conn.off("data", entry.handler);
-    } catch {}
-    this._hookedConns.delete(peerId);
+    const conn = PeerManager.connections.get(peerId);
+    const handler = this._hooked.get(peerId);
+    if (conn && handler) {
+      try {
+        conn.off("data", handler);
+      } catch {}
+    }
+    this._hooked.delete(peerId);
     this._incoming.delete(peerId);
   },
 
   /* -----------------------------------------------------
-     Envoi d'un message de contrôle (JSON)
+     Envoi JSON
   ----------------------------------------------------- */
   send(peerId, obj) {
     const conn = PeerManager.connections.get(peerId);
@@ -80,7 +81,7 @@ export const TBPeerManager = {
   },
 
   /* -----------------------------------------------------
-     Protocole : routing des messages de contrôle
+     Routing des messages de contrôle
   ----------------------------------------------------- */
   _route(peerId, msg) {
     switch (msg.type) {
@@ -93,12 +94,9 @@ export const TBPeerManager = {
         break;
 
       case "file-meta":
-        // préparer réception
         this._incoming.set(peerId, {
           requestId: msg.id,
-          meta: { name: msg.name, size: msg.size, mime: msg.mime },
-          chunks: [],
-          received: 0,
+          meta: msg,
         });
         this.onMeta?.(peerId, msg.id, msg);
         break;
@@ -107,94 +105,33 @@ export const TBPeerManager = {
         this._incoming.delete(peerId);
         this.onCancel?.(peerId, msg.id);
         break;
-
-      default:
-        // ignore
-        break;
     }
   },
 
   /* -----------------------------------------------------
-     Réception de chunks binaires
-     - raw peut être ArrayBuffer ou Blob
-     - on accumule dans _incoming[peerId]
+     Envoi du fichier (BLOB direct)
   ----------------------------------------------------- */
-  _handleChunk(peerId, raw) {
-    const incoming = this._incoming.get(peerId);
-    if (!incoming) {
-      // pas d'info meta : on ignore
-      return;
-    }
-
-    // normaliser ArrayBuffer
-    const bufferPromise =
-      raw instanceof Blob ? raw.arrayBuffer() : Promise.resolve(raw);
-
-    bufferPromise
-      .then((ab) => {
-        incoming.chunks.push(ab);
-        incoming.received += ab.byteLength;
-
-        const percent = Math.floor(
-          (incoming.received / incoming.meta.size) * 100,
-        );
-        this.onChunkProgress?.(peerId, percent);
-
-        // si reçu complet, finaliser
-        if (incoming.received >= incoming.meta.size) {
-          const blob = new Blob(incoming.chunks, {
-            type: incoming.meta.mime || "",
-          });
-          const file = new File([blob], incoming.meta.name || "file");
-          const requestId = incoming.requestId;
-          this._incoming.delete(peerId);
-          this.onFile?.(peerId, file, requestId);
-        }
-      })
-      .catch((e) => {
-        console.error("TBPeerManager chunk handling error", e);
-      });
-  },
-
-  /* -----------------------------------------------------
-     Envoi de fichier (chunké) — utilisé par l'UI demandeur
-     callbackProgress(percent) optionnel
-  ----------------------------------------------------- */
-  async sendFile(peerId, file, callbackProgress) {
+  async sendFile(peerId, file, onProgress) {
     const conn = PeerManager.connections.get(peerId);
-    if (!conn) throw new Error("no-conn");
+    if (!conn) throw new Error("No connection");
 
-    // envoyer meta d'abord
+    // envoyer meta
     const requestId = crypto.randomUUID();
     this.send(peerId, {
       type: "file-meta",
       id: requestId,
       name: file.name,
       size: file.size,
-      mime: file.type || "",
+      mime: file.type,
     });
 
-    const chunkSize = 64 * 1024; // 64KB
-    let offset = 0;
+    // envoyer fichier entier
+    conn.send(file);
 
-    while (offset < file.size) {
-      const slice = file.slice(offset, offset + chunkSize);
-      const ab = await slice.arrayBuffer();
-      try {
-        conn.send(ab); // envoi binaire
-      } catch (e) {
-        console.error("TBPeerManager send chunk failed", e);
-        throw e;
-      }
+    // progress instantané
+    onProgress?.(100);
+    this.onProgress?.(peerId, 100);
 
-      offset += ab.byteLength;
-      const percent = Math.floor((offset / file.size) * 100);
-      callbackProgress?.(percent);
-      this.onChunkProgress?.(peerId, percent);
-    }
-
-    // signal de fin (contrôle)
-    this.send(peerId, { type: "file-end", id: requestId });
     return requestId;
   },
 };

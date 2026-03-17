@@ -1,19 +1,21 @@
-// TBfile.js
-// UI complet pour demande/accept/send avec TBPeerManager (aucun import cyclique vers chat au top-level)
+// js/ui/handlers/TBfile.js
+// UI complète + retry + BLOB direct
 
 import { TBPeerManager } from "../../peer/utils/TBPeerManager.js";
 import { profile } from "../profile.js";
 
-/* -------------------- Helpers UI -------------------- */
+/* -----------------------------------------------------
+   Helpers UI
+----------------------------------------------------- */
 
 function createOverlay(title, html) {
   const o = document.createElement("div");
   o.className = "tbfile-overlay";
   o.innerHTML = `
-    <div class="tbfile-panel" role="dialog" aria-modal="true">
+    <div class="tbfile-panel">
       <div class="tbfile-header">
         <strong>${title}</strong>
-        <button class="tbfile-close" aria-label="Close">✕</button>
+        <button class="tbfile-close">✕</button>
       </div>
       <div class="tbfile-body">${html}</div>
     </div>
@@ -26,12 +28,13 @@ function createOverlay(title, html) {
   return o;
 }
 
-function dispatchSystem(msgHtml) {
-  // évènement que chat.js peut écouter pour afficher un message système
-  document.dispatchEvent(new CustomEvent("tbfile-system", { detail: msgHtml }));
+function sys(msg) {
+  document.dispatchEvent(new CustomEvent("tbfile-system", { detail: msg }));
 }
 
-/* -------------------- UI states -------------------- */
+/* -----------------------------------------------------
+   UI states
+----------------------------------------------------- */
 
 function showRequesterWaiting(peerId, requestId) {
   const o = createOverlay(
@@ -85,25 +88,22 @@ function showRequesterSendUI(peerId, requestId) {
     const f = fileInput.files[0];
     if (!f) return;
 
-    // envoyer meta via control message (TBPeerManager gère meta en interne)
-    try {
-      progressWrap.style.display = "block";
-      statusEl.textContent = "Sending…";
+    progressWrap.style.display = "block";
+    statusEl.textContent = "Sending…";
 
-      await TBPeerManager.sendFile(peerId, f, (percent) => {
-        progressBar.style.width = percent + "%";
-      });
+    await TBPeerManager.sendFile(peerId, f, (percent) => {
+      progressBar.style.width = percent + "%";
+    });
 
-      statusEl.textContent = "Transfer complete";
-      dispatchSystem(`📤 File sent: ${f.name}`);
-      // gros bouton fermer
-      o.querySelector(".tbfile-body").innerHTML +=
-        `<div style="margin-top:12px;"><button class="tbfile-close-large">Close</button></div>`;
-      o.querySelector(".tbfile-close-large").onclick = () => o.remove();
-    } catch (e) {
-      statusEl.textContent = "Transfer failed";
-      console.error(e);
-    }
+    statusEl.textContent = "Transfer complete";
+    sys(`📤 File sent: ${f.name}`);
+
+    o.querySelector(".tbfile-body").innerHTML += `
+      <div style="margin-top:12px;">
+        <button class="tbfile-close-large">Close</button>
+      </div>
+    `;
+    o.querySelector(".tbfile-close-large").onclick = () => o.remove();
   };
 
   return o;
@@ -125,90 +125,26 @@ function showReceiverPanel(peerId, requestId) {
   return o;
 }
 
-/* -------------------- INIT and event wiring -------------------- */
+/* -----------------------------------------------------
+   INIT
+----------------------------------------------------- */
 
 export function initTBfile() {
-  // TBPeerManager ready (ne pas attacher globalement)
-  // onRequest: afficher boutons accept/deny dans le chat via event
+  /* --- Incoming request --- */
   TBPeerManager.onRequest = (peerId, requestId, fromName) => {
-    dispatchSystem(`
-      <span>${fromName} wants to send you a file</span>
+    sys(`
+      ${fromName} wants to send you a file<br>
       <button class="tb-accept" data-id="${requestId}" data-peer="${peerId}">Accept</button>
       <button class="tb-deny" data-id="${requestId}" data-peer="${peerId}">Deny</button>
     `);
   };
 
-  TBPeerManager.onResponse = (peerId, requestId, accepted) => {
-    const o = document.querySelector(
-      `.tbfile-overlay[data-request-id="${requestId}"]`,
-    );
-    if (!o) return;
-
-    if (!accepted) {
-      o.querySelector(".tb-status").textContent = "Refused";
-      o.querySelector(".tb-result").innerHTML =
-        `<button class="tbfile-close-large">Close</button>`;
-      o.querySelector(".tbfile-close-large").onclick = () => o.remove();
-      dispatchSystem(`❌ File request refused by ${peerId}`);
-      return;
-    }
-
-    // accepted -> show send UI for requester
-    o.remove();
-    showRequesterSendUI(peerId, requestId);
-  };
-
-  TBPeerManager.onMeta = (peerId, requestId, meta) => {
-    const o = document.querySelector(
-      `.tbfile-overlay[data-request-id="${requestId}"]`,
-    );
-    if (o) {
-      const statusText = o.querySelector(".tb-status-text");
-      if (statusText)
-        statusText.textContent = `Incoming: ${meta.name} (${Math.round(meta.size / 1024)} KB)`;
-    }
-  };
-
-  TBPeerManager.onCancel = (peerId, requestId) => {
-    const o = document.querySelector(
-      `.tbfile-overlay[data-request-id="${requestId}"]`,
-    );
-    if (o) o.remove();
-    dispatchSystem(`⚠️ File request cancelled`);
-  };
-
-  TBPeerManager.onChunkProgress = (peerId, percent) => {
-    const o = document.querySelector(".tbfile-overlay");
-    if (!o) return;
-    const bar = o.querySelector(".tb-progress-bar");
-    if (bar) bar.style.width = percent + "%";
-  };
-
-  TBPeerManager.onFile = (peerId, file, requestId) => {
-    // afficher download + close
-    const o =
-      document.querySelector(
-        `.tbfile-overlay[data-request-id="${requestId}"]`,
-      ) || document.querySelector(".tbfile-overlay");
-    if (o) {
-      const url = URL.createObjectURL(file);
-      o.querySelector(".tbfile-body").innerHTML = `
-        <p>Received file</p>
-        <a href="${url}" download="${file.name}">Download ${file.name}</a>
-        <div style="margin-top:12px;"><button class="tbfile-close-large">Close</button></div>
-      `;
-      o.querySelector(".tbfile-close-large").onclick = () => o.remove();
-    }
-    dispatchSystem(`📥 Received file: ${file.name}`);
-  };
-
-  /* --- Accept / Deny buttons in chat (dispatched via dispatchSystem) --- */
+  /* --- Accept / Deny --- */
   document.addEventListener("click", (e) => {
     if (e.target.classList.contains("tb-accept")) {
       const peerId = e.target.dataset.peer;
       const requestId = e.target.dataset.id;
 
-      // Attacher TBPeerManager à la connexion du peer (on commence à écouter)
       TBPeerManager.attachToPeer(peerId);
 
       TBPeerManager.send(peerId, {
@@ -218,7 +154,6 @@ export function initTBfile() {
         from: profile.name,
       });
 
-      // ouvrir UI receveur
       showReceiverPanel(peerId, requestId);
     }
 
@@ -235,24 +170,94 @@ export function initTBfile() {
     }
   });
 
-  /* --- Click on toolbox button --- */
+  /* --- Response from peer --- */
+  TBPeerManager.onResponse = (peerId, requestId, accepted) => {
+    const o = document.querySelector(
+      `.tbfile-overlay[data-request-id="${requestId}"]`,
+    );
+    if (!o) return;
+
+    if (!accepted) {
+      o.querySelector(".tb-status").textContent = "Refused";
+      o.querySelector(".tb-result").innerHTML =
+        `<button onclick="this.closest('.tbfile-overlay').remove()">Close</button>`;
+      return;
+    }
+
+    o.remove();
+    showRequesterSendUI(peerId, requestId);
+  };
+
+  /* --- Meta incoming --- */
+  TBPeerManager.onMeta = (peerId, requestId, meta) => {
+    const o = document.querySelector(
+      `.tbfile-overlay[data-request-id="${requestId}"]`,
+    );
+    if (o) {
+      o.querySelector(".tb-status-text").textContent = `Incoming: ${meta.name}`;
+    }
+  };
+
+  /* --- Cancel --- */
+  TBPeerManager.onCancel = (peerId, requestId) => {
+    const o = document.querySelector(
+      `.tbfile-overlay[data-request-id="${requestId}"]`,
+    );
+    if (o) o.remove();
+  };
+
+  /* --- File received --- */
+  TBPeerManager.onFile = (peerId, file, requestId) => {
+    const o =
+      document.querySelector(
+        `.tbfile-overlay[data-request-id="${requestId}"]`,
+      ) || document.querySelector(".tbfile-overlay");
+    if (o) {
+      const url = URL.createObjectURL(file);
+      o.querySelector(".tbfile-body").innerHTML = `
+        <p>Received file</p>
+        <a href="${url}" download="${file.name}">Download ${file.name}</a>
+        <div style="margin-top:12px;"><button class="tbfile-close-large">Close</button></div>
+      `;
+      o.querySelector(".tbfile-close-large").onclick = () => o.remove();
+    }
+    sys(`📥 Received file: ${file.name}`);
+  };
+
+  /* --- Toolbox button --- */
   document.addEventListener("click", async (e) => {
     const btn = e.target.closest(".toolBtn[data-tool='file']");
     if (!btn) return;
 
-    // récupérer peerId dynamiquement pour éviter cycle
-    const { getCurrentChatPeerId } = await import("../chat.js");
-    const peerId = getCurrentChatPeerId();
+    const chatMod = await import("../chat.js");
+    const getPeer =
+      chatMod.getCurrentChatPeerId || (() => chatMod.currentChatPeerId);
+    const peerId = getPeer();
+
     if (!peerId) {
       createOverlay("File transfer", "<p>Open a chat first.</p>");
       return;
     }
 
-    // ATTACHER TBPeerManager à cette connexion maintenant (on veut écouter réponses)
-    TBPeerManager.attachToPeer(peerId);
-
     const requestId = crypto.randomUUID();
     showRequesterWaiting(peerId, requestId);
+
+    /* --- Retry attach tant que le menu est ouvert --- */
+    let tries = 0;
+    const retry = setInterval(() => {
+      const overlay = document.querySelector(
+        `.tbfile-overlay[data-request-id="${requestId}"]`,
+      );
+      if (!overlay) {
+        clearInterval(retry);
+        return;
+      }
+
+      const ok = TBPeerManager.attachToPeer(peerId);
+      if (ok) clearInterval(retry);
+
+      if (++tries > 40) clearInterval(retry);
+    }, 300);
 
     TBPeerManager.send(peerId, {
       type: "file-request",
