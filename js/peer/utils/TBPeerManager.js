@@ -2,11 +2,11 @@
 import { PeerManager } from "./PeerManager.js";
 
 export const TBPeerManager = {
-  onRequest: null, // (peerId, requestId, fromName)
-  onResponse: null, // (peerId, requestId, accepted)
-  onMeta: null, // (peerId, requestId, meta)
-  onCancel: null, // (peerId, requestId)
-  onFile: null, // (peerId, blob, requestId)
+  onRequest: null,   // (peerId, requestId, fromName)
+  onResponse: null,  // (peerId, requestId, accepted)
+  onMeta: null,      // (peerId, requestId, meta)
+  onCancel: null,    // (peerId, requestId)
+  onFile: null,      // (peerId, blob, requestId)
 
   init() {
     this.attachToConnections();
@@ -45,6 +45,7 @@ export const TBPeerManager = {
             this.onFile?.(peerId, raw, null);
             return;
           }
+
         } catch (err) {
           console.error("TBPeerManager error", err);
         }
@@ -70,5 +71,5 @@ export const TBPeerManager = {
         this.onCancel?.(peerId, msg.id);
         break;
     }
-  },
+  }
 };
