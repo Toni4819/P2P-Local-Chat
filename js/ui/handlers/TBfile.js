@@ -2,7 +2,7 @@
 
 import { TBPeerManager } from "../../peer/utils/TBPeerManager.js";
 import { PeerManager } from "../../peer/utils/PeerManager.js";
-import { saveMessage, appendMessage, currentChatPeerId } from "../chat.js";
+import { saveMessage, appendSystem, currentChatPeerId } from "../chat.js";
 import { SendManager } from "../../peer/utils/SendManager.js";
 
 /* Message bleu souligné */
@@ -11,19 +11,29 @@ function fileMessageHTML(name) {
 }
 
 export function initTBfile() {
-  /* Quand on reçoit le META → on crée un message dans le chat */
+  /* ---------------------------------------------------------
+     Quand on reçoit le META → message bleu dans le chat
+  --------------------------------------------------------- */
   TBPeerManager.onFileMessage = async (peerId, fileName) => {
     const timestamp = Date.now();
-    const text = `📄 ${fileMessageHTML(fileName)}`;
+    const html = `📄 ${fileMessageHTML(fileName)}`;
 
-    // sauvegarde
-    const id = await saveMessage(peerId, "them", text, timestamp, "received");
+    // sauvegarde en texte brut (sécurisé)
+    const id = await saveMessage(
+      peerId,
+      "them",
+      `📄 ${fileName}`,
+      timestamp,
+      "received",
+    );
 
-    // affichage
-    appendMessage("them", text, timestamp, "received", id);
+    // affichage HTML (sécurisé)
+    appendSystem(html, true);
   };
 
-  /* Quand on reçoit le fichier complet → téléchargement auto */
+  /* ---------------------------------------------------------
+     Quand on reçoit le fichier complet → téléchargement auto
+  --------------------------------------------------------- */
   TBPeerManager.onFileReceived = (peerId, file) => {
     console.log("[TBfile] Fichier reçu :", file);
 
@@ -34,7 +44,9 @@ export function initTBfile() {
     a.click();
   };
 
-  /* Bouton toolbox */
+  /* ---------------------------------------------------------
+     Bouton toolbox → choisir un fichier et l'envoyer
+  --------------------------------------------------------- */
   document.addEventListener("click", async (e) => {
     const btn = e.target.closest(".toolBtn[data-tool='file']");
     if (!btn) return;
@@ -44,7 +56,7 @@ export function initTBfile() {
 
     TBPeerManager.attach(peerId);
 
-    // input file
+    // input file invisible
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "*/*";
@@ -56,16 +68,27 @@ export function initTBfile() {
       if (!file) return;
 
       const timestamp = Date.now();
-      const text = `📄 ${fileMessageHTML(file.name)}`;
 
-      // 1) sauvegarde locale
-      const id = await saveMessage(peerId, "me", text, timestamp, "sending");
+      // message texte brut pour stockage + envoi
+      const plainText = `📄 ${file.name}`;
 
-      // 2) affichage local
-      appendMessage("me", text, timestamp, "sending", id);
+      // message HTML pour affichage local
+      const html = `📄 ${fileMessageHTML(file.name)}`;
 
-      // 3) envoi du message au peer
-      SendManager.send(peerId, text, id);
+      // 1) sauvegarde locale (texte brut)
+      const id = await saveMessage(
+        peerId,
+        "me",
+        plainText,
+        timestamp,
+        "sending",
+      );
+
+      // 2) affichage local (HTML)
+      appendSystem(html, true);
+
+      // 3) envoi du message au peer (texte brut)
+      SendManager.send(peerId, plainText, id);
 
       // 4) envoi du fichier chunké
       await TBPeerManager.sendFile(peerId, file);
