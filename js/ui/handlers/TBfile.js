@@ -1,34 +1,28 @@
-// TBfile.js — envoi direct + message bleu dans le chat + chunking
+// TBfile.js — envoi direct + log visuel + chunking
 
 import { TBPeerManager } from "../../peer/utils/TBPeerManager.js";
 import { PeerManager } from "../../peer/utils/PeerManager.js";
 import { saveMessage, appendSystem, currentChatPeerId } from "../chat.js";
 import { SendManager } from "../../peer/utils/SendManager.js";
 
-/* Message bleu souligné */
-function fileMessageHTML(name) {
-  return `<span style="color:#1e90ff; text-decoration:underline; cursor:default;">${name}</span>`;
+/* Petit log visuel */
+function logFile(name) {
+  appendSystem(`📄 ${name}`); // texte brut, affiché au milieu
 }
 
 export function initTBfile() {
   /* ---------------------------------------------------------
-     Quand on reçoit le META → message bleu dans le chat
+     Quand on reçoit le META → log + sauvegarde
+     (c’est ici que le peer voit le log)
   --------------------------------------------------------- */
   TBPeerManager.onFileMessage = async (peerId, fileName) => {
     const timestamp = Date.now();
-    const html = `📄 ${fileMessageHTML(fileName)}`;
 
-    // sauvegarde en texte brut (sécurisé)
-    const id = await saveMessage(
-      peerId,
-      "them",
-      `📄 ${fileName}`,
-      timestamp,
-      "received",
-    );
+    // 1) log visuel
+    logFile(fileName);
 
-    // affichage HTML (sécurisé)
-    appendSystem(html, true);
+    // 2) sauvegarde dans IndexedDB (texte brut)
+    await saveMessage(peerId, "them", `📄 ${fileName}`, timestamp, "received");
   };
 
   /* ---------------------------------------------------------
@@ -68,14 +62,12 @@ export function initTBfile() {
       if (!file) return;
 
       const timestamp = Date.now();
-
-      // message texte brut pour stockage + envoi
       const plainText = `📄 ${file.name}`;
 
-      // message HTML pour affichage local
-      const html = `📄 ${fileMessageHTML(file.name)}`;
+      // 1) log visuel local
+      logFile(file.name);
 
-      // 1) sauvegarde locale (texte brut)
+      // 2) sauvegarde locale
       const id = await saveMessage(
         peerId,
         "me",
@@ -84,10 +76,7 @@ export function initTBfile() {
         "sending",
       );
 
-      // 2) affichage local (HTML)
-      appendSystem(html, true);
-
-      // 3) envoi du message au peer (texte brut)
+      // 3) envoi du message texte au peer
       SendManager.send(peerId, plainText, id);
 
       // 4) envoi du fichier chunké

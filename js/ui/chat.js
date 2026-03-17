@@ -165,20 +165,13 @@ export function appendMessage(from, text, timestamp, status, id) {
   box.scrollTop = box.scrollHeight;
 }
 
-export function appendSystem(text, isHTML = false) {
+export function appendSystem(text) {
   const box = document.getElementById("chatMessages");
   if (!box) return;
 
   const div = document.createElement("div");
   div.className = "systemMsg";
-
-  if (isHTML) {
-    // HTML static
-    div.innerHTML = text;
-  } else {
-    // text
-    div.textContent = text;
-  }
+  div.textContent = text;
 
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
