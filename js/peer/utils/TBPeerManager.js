@@ -1,12 +1,12 @@
-// TBPeerManager.js — transfert chunké direct (inspiré de ton ancien code)
+// TBPeerManager.js — transfert chunké fiable
 
 import { PeerManager } from "./PeerManager.js";
 
 export const TBPeerManager = {
-  onFileMessage: null, // (peerId, fileName)
-  onFileReceived: null, // (peerId, file)
+  onFileMessage: null,
+  onFileReceived: null,
 
-  receiving: {}, // receiving[peerId][fileName] = { chunks[], totalSize, receivedSize }
+  receiving: {},
 
   attach(peerId) {
     const conn = PeerManager.connections.get(peerId);
@@ -42,6 +42,7 @@ export const TBPeerManager = {
     const conn = PeerManager.connections.get(peerId);
     if (!conn) throw new Error("Pas de connexion PeerJS");
 
+    // META
     conn.send(
       JSON.stringify({
         type: "file-meta",
@@ -52,7 +53,9 @@ export const TBPeerManager = {
     );
 
     const chunkSize = 16384;
+    let index = 0;
     let offset = 0;
+
     const reader = new FileReader();
 
     return new Promise((resolve, reject) => {
@@ -64,9 +67,10 @@ export const TBPeerManager = {
           fileName: file.name,
           fileSize: file.size,
           chunk,
-          offset,
+          index, // IMPORTANT : index séquentiel
         });
 
+        index++;
         offset += chunkSize;
 
         if (offset < file.size) {
@@ -93,24 +97,22 @@ export const TBPeerManager = {
       this.receiving[peerId][data.fileName] = {
         chunks: [],
         totalSize: data.fileSize,
-        receivedSize: 0,
+        receivedChunks: 0,
       };
     }
 
     const entry = this.receiving[peerId][data.fileName];
 
-    if (!entry.chunks[data.offset]) {
-      entry.chunks[data.offset] = data.chunk;
-      entry.receivedSize += data.chunk.byteLength;
+    if (!entry.chunks[data.index]) {
+      entry.chunks[data.index] = data.chunk;
+      entry.receivedChunks++;
     }
 
-    if (entry.receivedSize >= entry.totalSize) {
-      const ordered = Object.keys(entry.chunks)
-        .map((k) => parseInt(k))
-        .sort((a, b) => a - b)
-        .map((k) => entry.chunks[k]);
+    // FINI ?
+    const totalChunks = Math.ceil(entry.totalSize / 16384);
 
-      const blob = new Blob(ordered);
+    if (entry.receivedChunks >= totalChunks) {
+      const blob = new Blob(entry.chunks);
       const file = new File([blob], data.fileName);
 
       delete this.receiving[peerId][data.fileName];
