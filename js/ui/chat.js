@@ -240,7 +240,12 @@ export function openChat(peerId, name) {
     history
       .sort((a, b) => a.timestamp - b.timestamp) // ← tri chronologique
       .forEach((m) =>
-        appendMessage(m.from, m.text, m.timestamp, m.status, m.id),
+        if (m.type === "file") {
+  appendSystem(m.text); // log
+} else {
+  appendMessage(m.from, m.text, m.timestamp, m.status, m.id);
+}
+
       );
   });
 

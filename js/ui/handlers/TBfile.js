@@ -3,7 +3,6 @@
 import { TBPeerManager } from "../../peer/utils/TBPeerManager.js";
 import { PeerManager } from "../../peer/utils/PeerManager.js";
 import { saveMessage, appendSystem, currentChatPeerId } from "../chat.js";
-import { SendManager } from "../../peer/utils/SendManager.js";
 
 /* Petit log visuel */
 function logFile(name) {
@@ -85,9 +84,6 @@ export function initTBfile() {
         crypto.randomUUID(),
         "file",
       );
-
-      // 3) envoi du message texte au peer
-      SendManager.send(peerId, plainText, id);
 
       // 4) envoi du fichier chunké
       await TBPeerManager.sendFile(peerId, file);
