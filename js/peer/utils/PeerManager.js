@@ -45,9 +45,7 @@ export const PeerManager = {
 
   cancelConnection() {
     if (this.connectionState === "connecting" && this.currentConn) {
-      try {
-        this.currentConn.close();
-      } catch {}
+      try { this.currentConn.close(); } catch {}
     }
     this.connectionState = "cancelled";
     this.onConnectionStateChange?.("cancelled");
@@ -93,14 +91,16 @@ export const PeerManager = {
   send(peerId, data) {
     const conn = this.connections.get(peerId);
     if (!conn || !conn.open) {
-      // relance la connexion automatiquement
-      this.onConnectionStateChange?.("connecting", peerId);
-      this.connect(peerId, () => {
-        this.send(peerId, data); // renvoi automatique
-      });
-      return;
-    }
+    // relance la connexion automatiquement
+    this.onConnectionStateChange?.("connecting", peerId);
+    this.connect(peerId, () => {
+      this.send(peerId, data); // renvoi automatique
+    });
+    return;
+  }
 
+
+    
     conn.send(JSON.stringify(data));
   },
 
