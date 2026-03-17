@@ -19,6 +19,7 @@ export async function saveMessage(
   timestamp = Date.now(),
   status = "sending",
   id = crypto.randomUUID(),
+  type = "normal",
 ) {
   const msg = {
     id,
@@ -27,6 +28,7 @@ export async function saveMessage(
     text,
     timestamp,
     status,
+    type,
   };
 
   await Database.saveMessage(msg);

@@ -22,7 +22,15 @@ export function initTBfile() {
     logFile(fileName);
 
     // 2) sauvegarde dans IndexedDB (texte brut)
-    await saveMessage(peerId, "them", `📄 ${fileName}`, timestamp, "received");
+    await saveMessage(
+      peerId,
+      "them",
+      `📄 ${fileName}`,
+      timestamp,
+      "received",
+      crypto.randomUUID(),
+      "file",
+    );
   };
 
   /* ---------------------------------------------------------
@@ -71,9 +79,11 @@ export function initTBfile() {
       const id = await saveMessage(
         peerId,
         "me",
-        plainText,
+        text,
         timestamp,
-        "sending",
+        "sent",
+        crypto.randomUUID(),
+        "file",
       );
 
       // 3) envoi du message texte au peer
