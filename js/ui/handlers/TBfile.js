@@ -1,35 +1,37 @@
-// TBfile.js — envoi direct + message bleu dans le chat
+// TBfile.js — envoi direct + message bleu dans le chat + chunking
 
 import { TBPeerManager } from "../../peer/utils/TBPeerManager.js";
 import { PeerManager } from "../../peer/utils/PeerManager.js";
-import { profile } from "../profile.js";
+import { saveMessage, appendMessage, currentChatPeerId } from "../chat.js";
+import { SendManager } from "../../peer/utils/SendManager.js";
 
 /* Message bleu souligné */
 function fileMessageHTML(name) {
   return `<span style="color:#1e90ff; text-decoration:underline; cursor:default;">${name}</span>`;
 }
 
-/* Envoi d’un message dans le chat */
-function sendChatMessage(html) {
-  document.dispatchEvent(new CustomEvent("tbfile-system", { detail: html }));
-}
-
 export function initTBfile() {
-  /* Quand on reçoit le META → on affiche le message dans le chat */
-  TBPeerManager.onFileMessage = (peerId, fileName) => {
-    sendChatMessage(`📄 ${fileMessageHTML(fileName)}`);
+  /* Quand on reçoit le META → on crée un message dans le chat */
+  TBPeerManager.onFileMessage = async (peerId, fileName) => {
+    const timestamp = Date.now();
+    const text = `📄 ${fileMessageHTML(fileName)}`;
+
+    // sauvegarde
+    const id = await saveMessage(peerId, "them", text, timestamp, "received");
+
+    // affichage
+    appendMessage("them", text, timestamp, "received", id);
   };
 
-  /* Quand on reçoit le fichier complet */
+  /* Quand on reçoit le fichier complet → téléchargement auto */
   TBPeerManager.onFileReceived = (peerId, file) => {
-    console.debug("[TBfile] Fichier reçu :", file);
+    console.log("[TBfile] Fichier reçu :", file);
 
-    // tu peux activer le téléchargement automatique :
-    // const url = URL.createObjectURL(file);
-    // const a = document.createElement("a");
-    // a.href = url;
-    // a.download = file.name;
-    // a.click();
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
   };
 
   /* Bouton toolbox */
@@ -37,17 +39,9 @@ export function initTBfile() {
     const btn = e.target.closest(".toolBtn[data-tool='file']");
     if (!btn) return;
 
-    const chatMod = await import("../chat.js");
-    const getPeer =
-      chatMod.getCurrentChatPeerId || (() => chatMod.currentChatPeerId);
-    const peerId = getPeer();
+    const peerId = currentChatPeerId;
+    if (!peerId) return;
 
-    if (!peerId) {
-      sendChatMessage("❗ Ouvre un chat d’abord.");
-      return;
-    }
-
-    // attacher TBPeerManager
     TBPeerManager.attach(peerId);
 
     // input file
@@ -61,10 +55,19 @@ export function initTBfile() {
       const file = input.files[0];
       if (!file) return;
 
-      // message dans TON chat
-      sendChatMessage(`📄 ${fileMessageHTML(file.name)}`);
+      const timestamp = Date.now();
+      const text = `📄 ${fileMessageHTML(file.name)}`;
 
-      // envoi chunké
+      // 1) sauvegarde locale
+      const id = await saveMessage(peerId, "me", text, timestamp, "sending");
+
+      // 2) affichage local
+      appendMessage("me", text, timestamp, "sending", id);
+
+      // 3) envoi du message au peer
+      SendManager.send(peerId, text, id);
+
+      // 4) envoi du fichier chunké
       await TBPeerManager.sendFile(peerId, file);
 
       input.remove();
