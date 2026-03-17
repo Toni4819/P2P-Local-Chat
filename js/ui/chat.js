@@ -238,13 +238,14 @@ export function openChat(peerId, name) {
   // Load history
   getMessages(peerId).then((history) => {
     history
-  .sort((a, b) => a.timestamp - b.timestamp)
-  .forEach((m) => {
-    if (m.type === "file") {
-      appendSystem(m.text);
-    } else {
-      appendMessage(m.from, m.text, m.timestamp, m.status, m.id);
-    }
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .forEach((m) => {
+        if (m.type === "file") {
+          appendSystem(m.text); // log visuel
+        } else {
+          appendMessage(m.from, m.text, m.timestamp, m.status, m.id);
+        }
+      });
   });
 
   const input = document.getElementById("chatInput");
