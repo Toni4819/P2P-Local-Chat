@@ -1,12 +1,8 @@
 // js/ui/handlers/TBfile.js
-// UI complète + retry + BLOB direct
+// UI : demande -> accept/deny -> envoi chunké (principe de ton ancien code)
 
 import { TBPeerManager } from "../../peer/utils/TBPeerManager.js";
 import { profile } from "../profile.js";
-
-/* -----------------------------------------------------
-   Helpers UI
------------------------------------------------------ */
 
 function createOverlay(title, html) {
   const o = document.createElement("div");
@@ -32,14 +28,13 @@ function sys(msg) {
   document.dispatchEvent(new CustomEvent("tbfile-system", { detail: msg }));
 }
 
-/* -----------------------------------------------------
-   UI states
------------------------------------------------------ */
+/* -------------------- UI states -------------------- */
 
-function showRequesterWaiting(peerId, requestId) {
+function showRequesterWaiting(peerId, requestId, meta) {
   const o = createOverlay(
     "File transfer",
     `
+    <p>File: ${meta.name} (${Math.round(meta.size / 1024)} KB)</p>
     <p>Status: <span class="tb-status">Waiting…</span></p>
     <button class="tb-cancel">Cancel</button>
     <div class="tb-result"></div>
@@ -48,8 +43,8 @@ function showRequesterWaiting(peerId, requestId) {
   o.dataset.requestId = requestId;
 
   o.querySelector(".tb-cancel").onclick = () => {
-    TBPeerManager.send(peerId, {
-      type: "file-request-cancel",
+    TBPeerManager.sendControl(peerId, {
+      type: "file-cancel",
       id: requestId,
       from: profile.name,
     });
@@ -59,10 +54,11 @@ function showRequesterWaiting(peerId, requestId) {
   return o;
 }
 
-function showRequesterSendUI(peerId, requestId) {
+function showRequesterSendUI(peerId, requestId, meta) {
   const o = createOverlay(
     "Send file",
     `
+    <p>File: ${meta.name} (${Math.round(meta.size / 1024)} KB)</p>
     <input type="file" id="tb-file">
     <button id="tb-send" disabled>Send</button>
 
@@ -82,7 +78,10 @@ function showRequesterSendUI(peerId, requestId) {
   const progressBar = o.querySelector(".tb-progress-bar");
   const statusEl = o.querySelector(".tb-status-text");
 
-  fileInput.onchange = () => (sendBtn.disabled = !fileInput.files.length);
+  fileInput.onchange = () => {
+    const f = fileInput.files[0];
+    sendBtn.disabled = !f || f.name !== meta.name || f.size !== meta.size;
+  };
 
   sendBtn.onclick = async () => {
     const f = fileInput.files[0];
@@ -91,28 +90,31 @@ function showRequesterSendUI(peerId, requestId) {
     progressWrap.style.display = "block";
     statusEl.textContent = "Sending…";
 
-    await TBPeerManager.sendFile(peerId, f, (percent) => {
-      progressBar.style.width = percent + "%";
-    });
-
-    statusEl.textContent = "Transfer complete";
-    sys(`📤 File sent: ${f.name}`);
-
-    o.querySelector(".tbfile-body").innerHTML += `
-      <div style="margin-top:12px;">
-        <button class="tbfile-close-large">Close</button>
-      </div>
-    `;
-    o.querySelector(".tbfile-close-large").onclick = () => o.remove();
+    try {
+      await TBPeerManager.sendFile(peerId, requestId, f);
+      progressBar.style.width = "100%";
+      statusEl.textContent = "Transfer complete";
+      sys(`📤 File sent: ${f.name}`);
+      o.querySelector(".tbfile-body").innerHTML += `
+        <div style="margin-top:12px;">
+          <button class="tbfile-close-large">Close</button>
+        </div>
+      `;
+      o.querySelector(".tbfile-close-large").onclick = () => o.remove();
+    } catch (e) {
+      console.error("[TBfile] sendFile error", e);
+      statusEl.textContent = "Transfer failed";
+    }
   };
 
   return o;
 }
 
-function showReceiverPanel(peerId, requestId) {
+function showReceiverPanel(peerId, requestId, meta) {
   const o = createOverlay(
     "Receiving file",
     `
+    <p>Incoming: ${meta.name} (${Math.round(meta.size / 1024)} KB)</p>
     <p class="tb-status-text">Waiting for data…</p>
     <div class="tb-progress-wrap" style="margin-top:12px;">
       <div class="tb-progress" style="height:10px; background:#eee; border-radius:6px; overflow:hidden;">
@@ -125,52 +127,19 @@ function showReceiverPanel(peerId, requestId) {
   return o;
 }
 
-/* -----------------------------------------------------
-   INIT
------------------------------------------------------ */
+/* -------------------- INIT -------------------- */
 
 export function initTBfile() {
-  /* --- Incoming request --- */
-  TBPeerManager.onRequest = (peerId, requestId, fromName) => {
+  // callbacks TBPeerManager -> UI
+
+  TBPeerManager.onRequest = (peerId, requestId, fromName, meta) => {
     sys(`
-      ${fromName} wants to send you a file<br>
-      <button class="tb-accept" data-id="${requestId}" data-peer="${peerId}">Accept</button>
+      ${fromName} wants to send you a file: ${meta.name} (${Math.round(meta.size / 1024)} KB)<br>
+      <button class="tb-accept" data-id="${requestId}" data-peer="${peerId}" data-name="${meta.name}" data-size="${meta.size}">Accept</button>
       <button class="tb-deny" data-id="${requestId}" data-peer="${peerId}">Deny</button>
     `);
   };
 
-  /* --- Accept / Deny --- */
-  document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("tb-accept")) {
-      const peerId = e.target.dataset.peer;
-      const requestId = e.target.dataset.id;
-
-      TBPeerManager.attachToPeer(peerId);
-
-      TBPeerManager.send(peerId, {
-        type: "file-response",
-        id: requestId,
-        accepted: true,
-        from: profile.name,
-      });
-
-      showReceiverPanel(peerId, requestId);
-    }
-
-    if (e.target.classList.contains("tb-deny")) {
-      const peerId = e.target.dataset.peer;
-      const requestId = e.target.dataset.id;
-
-      TBPeerManager.send(peerId, {
-        type: "file-response",
-        id: requestId,
-        accepted: false,
-        from: profile.name,
-      });
-    }
-  });
-
-  /* --- Response from peer --- */
   TBPeerManager.onResponse = (peerId, requestId, accepted) => {
     const o = document.querySelector(
       `.tbfile-overlay[data-request-id="${requestId}"]`,
@@ -181,33 +150,30 @@ export function initTBfile() {
       o.querySelector(".tb-status").textContent = "Refused";
       o.querySelector(".tb-result").innerHTML =
         `<button onclick="this.closest('.tbfile-overlay').remove()">Close</button>`;
+      sys(`❌ File request refused by ${peerId}`);
       return;
     }
 
+    const name =
+      o.querySelector("p").textContent.match(/File: (.+) \(/)?.[1] || "file";
+    const sizeMatch = o.querySelector("p").textContent.match(/\((\d+) KB\)/);
+    const size = sizeMatch ? parseInt(sizeMatch[1], 10) * 1024 : 0;
+
     o.remove();
-    showRequesterSendUI(peerId, requestId);
+    showRequesterSendUI(peerId, requestId, { name, size });
   };
 
-  /* --- Meta incoming --- */
-  TBPeerManager.onMeta = (peerId, requestId, meta) => {
-    const o = document.querySelector(
-      `.tbfile-overlay[data-request-id="${requestId}"]`,
-    );
-    if (o) {
-      o.querySelector(".tb-status-text").textContent = `Incoming: ${meta.name}`;
-    }
+  TBPeerManager.onProgress = (peerId, requestId, percent, direction) => {
+    const o =
+      document.querySelector(
+        `.tbfile-overlay[data-request-id="${requestId}"]`,
+      ) || document.querySelector(".tbfile-overlay");
+    if (!o) return;
+    const bar = o.querySelector(".tb-progress-bar");
+    if (bar) bar.style.width = `${percent}%`;
   };
 
-  /* --- Cancel --- */
-  TBPeerManager.onCancel = (peerId, requestId) => {
-    const o = document.querySelector(
-      `.tbfile-overlay[data-request-id="${requestId}"]`,
-    );
-    if (o) o.remove();
-  };
-
-  /* --- File received --- */
-  TBPeerManager.onFile = (peerId, file, requestId) => {
+  TBPeerManager.onComplete = (peerId, requestId, file) => {
     const o =
       document.querySelector(
         `.tbfile-overlay[data-request-id="${requestId}"]`,
@@ -224,7 +190,48 @@ export function initTBfile() {
     sys(`📥 Received file: ${file.name}`);
   };
 
-  /* --- Toolbox button --- */
+  TBPeerManager.onCancel = (peerId, requestId) => {
+    const o = document.querySelector(
+      `.tbfile-overlay[data-request-id="${requestId}"]`,
+    );
+    if (o) o.remove();
+    sys(`⚠️ File request cancelled`);
+  };
+
+  // Accept / Deny dans le chat
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("tb-accept")) {
+      const peerId = e.target.dataset.peer;
+      const requestId = e.target.dataset.id;
+      const name = e.target.dataset.name;
+      const size = parseInt(e.target.dataset.size, 10);
+
+      TBPeerManager.attachToPeer(peerId);
+
+      TBPeerManager.sendControl(peerId, {
+        type: "file-response",
+        id: requestId,
+        accepted: true,
+        from: profile.name,
+      });
+
+      showReceiverPanel(peerId, requestId, { name, size });
+    }
+
+    if (e.target.classList.contains("tb-deny")) {
+      const peerId = e.target.dataset.peer;
+      const requestId = e.target.dataset.id;
+
+      TBPeerManager.sendControl(peerId, {
+        type: "file-response",
+        id: requestId,
+        accepted: false,
+        from: profile.name,
+      });
+    }
+  });
+
+  // Bouton toolbox
   document.addEventListener("click", async (e) => {
     const btn = e.target.closest(".toolBtn[data-tool='file']");
     if (!btn) return;
@@ -239,30 +246,25 @@ export function initTBfile() {
       return;
     }
 
-    const requestId = crypto.randomUUID();
-    showRequesterWaiting(peerId, requestId);
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.onchange = () => {
+      const f = fileInput.files[0];
+      if (!f) return;
 
-    /* --- Retry attach tant que le menu est ouvert --- */
-    let tries = 0;
-    const retry = setInterval(() => {
-      const overlay = document.querySelector(
-        `.tbfile-overlay[data-request-id="${requestId}"]`,
-      );
-      if (!overlay) {
-        clearInterval(retry);
-        return;
-      }
+      const requestId = crypto.randomUUID();
+      TBPeerManager.attachToPeer(peerId);
 
-      const ok = TBPeerManager.attachToPeer(peerId);
-      if (ok) clearInterval(retry);
+      showRequesterWaiting(peerId, requestId, { name: f.name, size: f.size });
 
-      if (++tries > 40) clearInterval(retry);
-    }, 300);
-
-    TBPeerManager.send(peerId, {
-      type: "file-request",
-      id: requestId,
-      from: profile.name,
-    });
+      TBPeerManager.sendControl(peerId, {
+        type: "file-request",
+        id: requestId,
+        from: profile.name,
+        name: f.name,
+        size: f.size,
+      });
+    };
+    fileInput.click();
   });
 }
