@@ -1,0 +1,20 @@
+# Buttons
+btn.save=Save
+btn.addContact=Add Contact
+btn.profile=My Profile
+btn.send=Send
+
+# addContact Page
+add.title=Add contact
+add.name=Name
+add.peerId=PeerJS ID
+
+# profile Page
+profile.title=Your Profile
+profile.name=Your Name
+profile.share=Share your link
+
+# chat Page
+chat.title=Chat with
+chat.peerId=PeerID
+chat.input=Type a message...
