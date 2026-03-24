@@ -1,4 +1,5 @@
 // chat.js
+import { applyTranslations } from "./i18n.js";
 
 import { PeerManager } from "../peer/utils/PeerManager.js";
 import { SendManager } from "../peer/utils/SendManager.js";
@@ -225,13 +226,13 @@ export function openChat(peerId, name) {
     </div>
   </div>
 
-  <p>PeerID: ${peerId}</p>
+  <p data-i18n="chat.peerId">PeerID: ${peerId}</p>
 
   <div id="chatMessages"></div>
 
   <div id="chatInputRow">
-    <input id="chatInput" placeholder="Type a message…">
-    <button id="chatSend">Send</button>
+    <input id="chatInput" data-i18n-placeholder="chat.input" placeholder="Type a message…">
+    <button id="chatSend" data-i18n="btn.send">Send</button>
   </div>
 `;
 
@@ -257,6 +258,7 @@ export function openChat(peerId, name) {
       if (e.key === "Enter") sendCurrentMessage();
     };
   }
+  applyTranslations();
 }
 
 /* ============================

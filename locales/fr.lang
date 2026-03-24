@@ -18,3 +18,6 @@ profile.share=Partagez votre lin
 chat.title=Chatter avec
 chat.peerId=PeerID
 chat.input=Tapez un message...
+
+# Overlays
+overlay.connecting=Connection...
