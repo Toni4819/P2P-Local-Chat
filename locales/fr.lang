@@ -1,0 +1,20 @@
+# Buttons
+btn.save=Sauvegarder
+btn.addContact=Ajouter un contact
+btn.profile=Mon Profil
+btn.send=Envoyer
+
+# addContact Page
+add.title=Ajouter un contact
+add.name=Nom
+add.peerId=PeerJS ID
+
+# profile Page
+profile.title=Votre Profil
+profile.name=Votre Nom
+profile.share=Partagez votre lin
+
+# chat Page
+chat.title=Chatter avec
+chat.peerId=PeerID
+chat.input=Tapez un message...
