@@ -56,4 +56,4 @@ function detectBrowserLang() {
 }
 
 // Initialise
-export const i18nReady = loadLanguage(detectBrowserLang());
+loadLanguage(detectBrowserLang());

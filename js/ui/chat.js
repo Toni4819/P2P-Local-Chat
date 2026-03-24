@@ -1,5 +1,5 @@
 // chat.js
-import "../i18n.js";
+import { applyTranslations } from "../i18n.js";
 
 import { PeerManager } from "../peer/utils/PeerManager.js";
 import { SendManager } from "../peer/utils/SendManager.js";
@@ -258,7 +258,7 @@ export function openChat(peerId, name) {
       if (e.key === "Enter") sendCurrentMessage();
     };
   }
-  i18nReady.then(applyTranslations);
+  applyTranslations();
 }
 
 /* ============================
