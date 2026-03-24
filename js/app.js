@@ -1,5 +1,5 @@
 // app.js
-import "./startup.js";
+import {applyTranslations} from "./i18n.js";
 
 // 1) Enregistrer les handlers PeerJS
 import "./peer/handlers/audio.js";
@@ -30,6 +30,7 @@ function appStart() {
   initTBfile();
   initTBcall();
   initTBvideo();
+  applyTranslations();
 }
 
 // 4) On l’expose globalement
