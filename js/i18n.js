@@ -5,7 +5,7 @@ const translations = {};
 
 // Load .lang + convert to dictionnary
 async function loadLangFile(lang) {
-  const res = await fetch(`/locales/${lang}.lang`);
+  const res = await fetch(`./locales/${lang}.lang`);
   if (!res.ok) return null;
 
   const text = await res.text();
