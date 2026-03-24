@@ -1,5 +1,4 @@
 // startup.js
-import "./app.js";
 import { Database } from "./core/db.js";
 import { PeerManager } from "./peer/utils/PeerManager.js";
 import { attachPeerManagerCallbacks } from "./ui/chatpanel.js";
