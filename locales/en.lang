@@ -16,7 +16,7 @@ profile.share=Share your link
 
 # chat Page
 chat.title=Chat with
-chat.peerId=PeerID: ${peerId}
+chat.peerId=PeerID:
 chat.input=Type a message...
 
 # Overlays

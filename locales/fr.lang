@@ -7,7 +7,7 @@ btn.send=Envoyer
 # addContact Page
 add.title=Ajouter un contact
 add.name=Nom
-add.peerId=PeerJS ID
+add.peerId=ID PeerJS
 
 # profile Page
 profile.title=Votre Profil
@@ -16,7 +16,7 @@ profile.share=Partagez votre lien
 
 # chat Page
 chat.title=Chatter avec
-chat.peerId=PeerID
+chat.peerId=ID Peer:
 chat.input=Tapez un message...
 
 # Overlays
