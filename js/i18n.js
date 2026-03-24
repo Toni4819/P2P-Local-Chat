@@ -35,7 +35,7 @@ async function loadLanguage(lang) {
   applyTranslations();
 }
 // DOM trads
-function applyTranslations() {
+ export function applyTranslations() {
   const dict = translations.current;
 
   // Texts
