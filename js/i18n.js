@@ -55,10 +55,5 @@ function detectBrowserLang() {
   return navigator.language?.split("-")[0] || DEFAULT_LANG;
 }
 
-// Lang detect
-function detectBrowserLang() {
-  return navigator.language?.split("-")[0] || DEFAULT_LANG;
-}
-
 // Initialise
 export const i18nReady = loadLanguage(detectBrowserLang());
