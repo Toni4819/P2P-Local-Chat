@@ -201,7 +201,7 @@ export function openChat(peerId, name) {
 
   main.innerHTML = `
   <div id="chatHeader">
-    <h2><span data-i18n="chat.with">Chat with</span> ${name}</h2>
+    <h2><span data-i18n="chat.title">Chat with</span> ${name}</h2>
 
     <div id="chatToolbox">
       <div class="toolBtn" data-tool="call">
