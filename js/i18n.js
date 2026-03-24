@@ -1,10 +1,8 @@
-const DEFAULT_LANG = "en";
+export const DEFAULT_LANG = "en";
 
-// Trad Cache
-const translations = {};
+export const translations = {};
 
-// Load .lang + convert to dictionnary
-async function loadLangFile(lang) {
+export async function loadLangFile(lang) {
   const res = await fetch(`./locales/${lang}.lang`);
   if (!res.ok) return null;
 
@@ -22,38 +20,32 @@ async function loadLangFile(lang) {
   return dict;
 }
 
-// Default load + fallback
-async function loadLanguage(lang) {
+export async function loadLanguage(lang) {
   const main = await loadLangFile(lang);
-  // Fallback
   const fallback =
     lang !== DEFAULT_LANG ? await loadLangFile(DEFAULT_LANG) : {};
-  // Fusion
   translations.current = { ...fallback, ...main };
 
   applyTranslations();
 }
-// DOM trads
+
 export function applyTranslations() {
   const dict = translations.current;
+  if (!dict) return;
 
-  // Texts
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (dict[key]) el.textContent = dict[key];
   });
 
-  // Placeholders
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
     const key = el.getAttribute("data-i18n-placeholder");
     if (dict[key]) el.placeholder = dict[key];
   });
 }
 
-// Lang etect
 function detectBrowserLang() {
   return navigator.language?.split("-")[0] || DEFAULT_LANG;
 }
 
-// Initialise
-loadLanguage(detectBrowserLang());
+export const i18nReady = loadLanguage(detectBrowserLang());
