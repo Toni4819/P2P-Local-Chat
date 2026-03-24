@@ -31,7 +31,7 @@ function injectConnectionOverlay() {
 
   div.innerHTML = `
     <div>
-      <div id="connTitle">Connecting…</div>
+      <div id="connTitle" data-i18n="overlay.connecting">Connecting…</div>
       <div id="connPeer"></div>
     </div>
   `;
@@ -94,13 +94,13 @@ export function showProfilePanel() {
   const link = `${location.origin}/P2P-Chat/?peer=${localPeerId || ""}&name=${encodeURIComponent(profile.name)}`;
 
   main.innerHTML = `
-    <h2>My profile</h2>
+    <h2 data-i18n="profile.title">My profile</h2>
 
-    <label>Your name</label>
+    <label data-i18n="profile.name">Your name</label>
     <input id="myName" value="${profile.name}">
-    <button id="saveName">Save</button>
+    <button id="saveName" data-i18n="btn.save">Save</button>
 
-    <h3>Share your link</h3>
+    <h3 data-i18n="profile.share">Share your link</h3>
     <div id="myQR"></div>
     <pre>${link}</pre>
   `;
@@ -150,15 +150,15 @@ export function showAddContactPanel() {
   const main = document.getElementById("mainPanel");
 
   main.innerHTML = `
-    <h2>Add contact</h2>
+    <h2 data-i18n="add.addContact">Add contact</h2>
 
-    <label>Name</label>
+    <label data-i18n="add.name">Name</label>
     <input id="newName">
 
-    <label>PeerJS ID</label>
+    <label data-i18n="add.peerId">PeerJS ID</label>
     <input id="newPeerId">
 
-    <button id="saveContact">Save</button>
+    <button id="saveContact" data-i18n="btn.save">Save</button>
   `;
 
   document.getElementById("saveContact").onclick = () => {
