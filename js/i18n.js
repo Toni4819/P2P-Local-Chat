@@ -11,12 +11,12 @@ async function loadLangFile(lang) {
   const text = await res.text();
   const dict = {};
 
-  text.split('\n').forEach(line => {
+  text.split("\n").forEach((line) => {
     line = line.trim();
-    if (!line || line.startsWith('#')) return;
+    if (!line || line.startsWith("#")) return;
 
-    const [key, ...rest] = line.split('=');
-    dict[key.trim()] = rest.join('=').trim();
+    const [key, ...rest] = line.split("=");
+    dict[key.trim()] = rest.join("=").trim();
   });
 
   return dict;
@@ -26,26 +26,25 @@ async function loadLangFile(lang) {
 async function loadLanguage(lang) {
   const main = await loadLangFile(lang);
   // Fallback
-  const fallback = lang !== DEFAULT_LANG
-    ? await loadLangFile(DEFAULT_LANG)
-    : {};
+  const fallback =
+    lang !== DEFAULT_LANG ? await loadLangFile(DEFAULT_LANG) : {};
   // Fusion
   translations.current = { ...fallback, ...main };
 
   applyTranslations();
 }
 // DOM trads
- export function applyTranslations() {
+export function applyTranslations() {
   const dict = translations.current;
 
   // Texts
-  document.querySelectorAll("[data-i18n]").forEach(el => {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (dict[key]) el.textContent = dict[key];
   });
 
   // Placeholders
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
     const key = el.getAttribute("data-i18n-placeholder");
     if (dict[key]) el.placeholder = dict[key];
   });
@@ -53,8 +52,13 @@ async function loadLanguage(lang) {
 
 // Lang etect
 function detectBrowserLang() {
-  return navigator.language?.split('-')[0] || DEFAULT_LANG;
+  return navigator.language?.split("-")[0] || DEFAULT_LANG;
+}
+
+// Lang detect
+function detectBrowserLang() {
+  return navigator.language?.split("-")[0] || DEFAULT_LANG;
 }
 
 // Initialise
-loadLanguage(detectBrowserLang());
+export const i18nReady = loadLanguage(detectBrowserLang());

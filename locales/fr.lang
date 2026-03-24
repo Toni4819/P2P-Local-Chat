@@ -12,7 +12,7 @@ add.peerId=PeerJS ID
 # profile Page
 profile.title=Votre Profil
 profile.name=Votre Nom
-profile.share=Partagez votre lin
+profile.share=Partagez votre lien
 
 # chat Page
 chat.title=Chatter avec
