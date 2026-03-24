@@ -1,5 +1,5 @@
 // chat.js
-import { applyTranslations, i18nReady } from "./i18n.js";
+import { applyTranslations, i18nReady } from "../i18n.js";
 
 import { PeerManager } from "../peer/utils/PeerManager.js";
 import { SendManager } from "../peer/utils/SendManager.js";
