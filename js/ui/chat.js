@@ -258,9 +258,7 @@ export function openChat(peerId, name) {
       if (e.key === "Enter") sendCurrentMessage();
     };
   }
-  i18nReady.then(() => {
-    requestAnimationFrame(applyTranslations);
-  });
+  requestAnimationFrame(applyTranslations);
 }
 
 /* ============================

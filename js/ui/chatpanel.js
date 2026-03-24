@@ -1,4 +1,5 @@
 // chatpanel.js
+import { applyTranslations, i18nReady } from "../i18n.js";
 
 import { localPeerId, PeerManager } from "../peer/utils/PeerManager.js";
 import { openChat } from "./chat.js";
@@ -135,6 +136,7 @@ export function showProfilePanel() {
     saveProfile(profile);
     alert("Name updated");
   };
+  requestAnimationFrame(applyTranslations);
 }
 
 document.addEventListener("click", (e) => {
@@ -178,6 +180,7 @@ export function showAddContactPanel() {
       UI.hideConnectingOverlay();
     });
   };
+  requestAnimationFrame(applyTranslations);
 }
 
 export function showContactPanel(id) {
@@ -191,4 +194,5 @@ export function showContactPanel(id) {
   PeerManager.connect(c.peerid, () => {
     UI.hideConnectingOverlay();
   });
+  requestAnimationFrame(applyTranslations);
 }
