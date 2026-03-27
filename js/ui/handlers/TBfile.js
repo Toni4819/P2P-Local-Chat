@@ -1,4 +1,4 @@
-// TBfile.js — overlay + log + envoi chunké pipeline ACK
+// TBfile.js — menu + overlay + log + envoi chunké pipeline ACK
 
 import { TBPeerManager } from "../../peer/utils/TBPeerManager.js";
 import { appendSystem, currentChatPeerId, saveMessage } from "../chat.js";
@@ -47,6 +47,38 @@ function hideOverlay() {
 }
 
 /* ---------------------------------------------------------
+   Menu contextuel
+--------------------------------------------------------- */
+function openFileMenu(x, y) {
+  // supprimer ancien menu
+  const old = document.getElementById("tbfile-menu");
+  if (old) old.remove();
+
+  const menu = document.createElement("div");
+  menu.id = "tbfile-menu";
+  menu.innerHTML = `
+    <div class="tbfile-menu-item" data-action="send-file">
+      📄 Envoyer un fichier
+    </div>
+  `;
+
+  menu.style.left = x + "px";
+  menu.style.top = y + "px";
+
+  document.body.appendChild(menu);
+
+  // empêcher fermeture immédiate
+  setTimeout(() => {
+    document.addEventListener("click", function close(e) {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener("click", close);
+      }
+    });
+  }, 10);
+}
+
+/* ---------------------------------------------------------
    Initialisation
 --------------------------------------------------------- */
 export function initTBfile() {
@@ -85,41 +117,10 @@ export function initTBfile() {
   };
 
   /* ---------------------------------------------------------
-   Petit menu d’envoi
---------------------------------------------------------- */
-  function openFileMenu(x, y) {
-    // supprimer ancien menu
-    const old = document.getElementById("tbfile-menu");
-    if (old) old.remove();
-
-    const menu = document.createElement("div");
-    menu.id = "tbfile-menu";
-    menu.innerHTML = `
-    <div class="tbfile-menu-item" data-action="send-file">
-      📄 Envoyer un fichier
-    </div>
-  `;
-
-    menu.style.left = x + "px";
-    menu.style.top = y + "px";
-
-    document.body.appendChild(menu);
-
-    // fermer si on clique ailleurs
-    setTimeout(() => {
-      document.addEventListener("click", function close(e) {
-        if (!menu.contains(e.target)) {
-          menu.remove();
-          document.removeEventListener("click", close);
-        }
-      });
-    });
-  }
-
-  /* ---------------------------------------------------------
-     Bouton toolbox → choisir un fichier et l'envoyer
+     Gestion des clics
   --------------------------------------------------------- */
   document.addEventListener("click", async (e) => {
+    /* --- OUVERTURE DU MENU --- */
     const btn = e.target.closest(".toolBtn[data-tool='file']");
     if (btn) {
       const rect = btn.getBoundingClientRect();
@@ -127,7 +128,7 @@ export function initTBfile() {
       return;
     }
 
-    // clic sur "Envoyer un fichier"
+    /* --- CLIC SUR "Envoyer un fichier" --- */
     const item = e.target.closest(".tbfile-menu-item[data-action='send-file']");
     if (item) {
       const peerId = currentChatPeerId;
@@ -135,6 +136,11 @@ export function initTBfile() {
 
       TBPeerManager.attach(peerId);
 
+      // fermer le menu
+      const menu = document.getElementById("tbfile-menu");
+      if (menu) menu.remove();
+
+      // input file invisible
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "*/*";
@@ -171,6 +177,7 @@ export function initTBfile() {
       };
 
       input.click();
+      return;
     }
   });
 }
