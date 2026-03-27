@@ -84,3 +84,9 @@
 .tbfile-menu-item:hover {
   background: #2a2a2a;
 }
+
+/* Petit fix UX pour les toolBtn (si tu veux) */
+.toolBtn[data-tool="file"] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}

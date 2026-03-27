@@ -57,6 +57,10 @@ export const TBPeerManager = {
           });
           return;
         }
+
+        if (typeof data === "string") {
+          // ignore other strings
+        }
       } catch (e) {
         console.error("[TBPeerManager] erreur data", e);
       }
@@ -83,6 +87,7 @@ export const TBPeerManager = {
       resolve: null,
       onProgress,
       totalChunks,
+      pendingAcks: new Set(),
     };
 
     this._sending = state;
@@ -98,11 +103,12 @@ export const TBPeerManager = {
     );
 
     // attendre ack-meta
-    await this._waitAck("ack-meta");
+    await this._waitAck(conn, "ack-meta");
 
     // pipeline
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       state.resolve = resolve;
+      state.reject = reject;
       this._pumpWindow();
     });
   },
@@ -111,18 +117,20 @@ export const TBPeerManager = {
     const s = this._sending;
     if (!s) return;
 
+    // envoyer autant que la fenêtre le permet
     while (
       s.nextToSend < s.totalChunks &&
       s.nextToSend - s.acks.size < this.WINDOW_SIZE
     ) {
       this._sendChunk(s.nextToSend);
+      s.pendingAcks.add(s.nextToSend);
       s.nextToSend++;
     }
 
     // terminé ?
     if (s.acks.size >= s.totalChunks) {
       s.conn.send(JSON.stringify({ type: "file-end" }));
-      await this._waitAck("ack-end");
+      await this._waitAck(s.conn, "ack-end");
       s.resolve();
       this._sending = null;
     }
@@ -154,32 +162,40 @@ export const TBPeerManager = {
     if (!s) return;
 
     if (msg.type === "ack-chunk") {
-      s.acks.add(msg.index);
+      // ack unique
+      if (!s.acks.has(msg.index)) {
+        s.acks.add(msg.index);
+        s.pendingAcks.delete(msg.index);
 
-      const percent = Math.floor((s.acks.size / s.totalChunks) * 100);
-      s.onProgress?.(percent);
+        const percent = Math.floor((s.acks.size / s.totalChunks) * 100);
+        s.onProgress?.(percent);
 
-      this._pumpWindow();
+        // tenter d'envoyer plus
+        this._pumpWindow();
+      }
     }
 
     if (msg.type === "ack-end") {
-      // fin confirmée
+      // fin confirmée (rien à faire ici)
     }
   },
 
-  _waitAck(type) {
+  _waitAck(conn, type) {
     return new Promise((resolve) => {
       const handler = (data) => {
-        if (typeof data === "string") {
-          const msg = JSON.parse(data);
-          if (msg.type === type) {
-            conn.off("data", handler);
-            resolve();
+        try {
+          if (typeof data === "string") {
+            const msg = JSON.parse(data);
+            if (msg.type === type) {
+              conn.off && conn.off("data", handler);
+              resolve(msg);
+            }
           }
+        } catch (e) {
+          // ignore parse errors
         }
       };
 
-      const conn = this._sending.conn;
       conn.on("data", handler);
     });
   },

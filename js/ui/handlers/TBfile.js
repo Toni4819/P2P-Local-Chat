@@ -47,10 +47,11 @@ function hideOverlay() {
 }
 
 /* ---------------------------------------------------------
-   Menu contextuel
+   Menu contextuel (robuste)
+   - si le bouton n'a pas de taille, on utilise les coords du clic
+   - on installe le listener de fermeture après un petit délai
 --------------------------------------------------------- */
 function openFileMenu(x, y) {
-  // supprimer ancien menu
   const old = document.getElementById("tbfile-menu");
   if (old) old.remove();
 
@@ -62,19 +63,39 @@ function openFileMenu(x, y) {
     </div>
   `;
 
-  menu.style.left = x + "px";
-  menu.style.top = y + "px";
+  // clamp pour éviter overflow hors écran
+  const pad = 8;
+  const vw = Math.max(
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0,
+  );
+  const vh = Math.max(
+    document.documentElement.clientHeight || 0,
+    window.innerHeight || 0,
+  );
+
+  let left = x;
+  let top = y;
+  // si left/top undefined -> centre
+  if (left == null) left = Math.floor(vw / 2 - 90);
+  if (top == null) top = Math.floor(vh / 2);
+
+  // positionnement simple
+  menu.style.position = "absolute";
+  menu.style.left = Math.min(Math.max(pad, left), vw - pad - 180) + "px";
+  menu.style.top = Math.min(Math.max(pad, top), vh - pad - 40) + "px";
 
   document.body.appendChild(menu);
 
-  // empêcher fermeture immédiate
+  // empêcher fermeture immédiate (évite que le clic d'ouverture ferme le menu)
   setTimeout(() => {
-    document.addEventListener("click", function close(e) {
+    function close(e) {
       if (!menu.contains(e.target)) {
         menu.remove();
         document.removeEventListener("click", close);
       }
-    });
+    }
+    document.addEventListener("click", close);
   }, 10);
 }
 
@@ -118,18 +139,33 @@ export function initTBfile() {
 
   /* ---------------------------------------------------------
      Gestion des clics
+     - on écoute en capture pour ouvrir le menu avant d'autres handlers
   --------------------------------------------------------- */
-  document.addEventListener("click", async (e) => {
-    /* --- OUVERTURE DU MENU --- */
-    const btn = e.target.closest(".toolBtn[data-tool='file']");
+  const clickHandler = async (e) => {
+    // --- OUVERTURE DU MENU ---
+    const btn =
+      e.target.closest && e.target.closest(".toolBtn[data-tool='file']");
     if (btn) {
+      // si le bouton a une taille, on positionne le menu sous le bouton
       const rect = btn.getBoundingClientRect();
-      openFileMenu(rect.left, rect.bottom + 6);
+      let left = rect.left;
+      let top = rect.bottom + 6;
+
+      // si le bouton est invisible / sans taille, on utilise la position du clic
+      if (!rect.width && !rect.height) {
+        left = e.clientX;
+        top = e.clientY;
+      }
+
+      openFileMenu(left, top);
+      // stop ici pour ne pas propager le clic
       return;
     }
 
-    /* --- CLIC SUR "Envoyer un fichier" --- */
-    const item = e.target.closest(".tbfile-menu-item[data-action='send-file']");
+    // --- CLIC SUR "Envoyer un fichier" ---
+    const item =
+      e.target.closest &&
+      e.target.closest(".tbfile-menu-item[data-action='send-file']");
     if (item) {
       const peerId = currentChatPeerId;
       if (!peerId) return;
@@ -168,16 +204,24 @@ export function initTBfile() {
 
         updateOverlay(file.name, 0);
 
-        await TBPeerManager.sendFile(peerId, file, (percent) => {
-          updateOverlay(file.name, percent);
-        });
-
-        hideOverlay();
-        input.remove();
+        try {
+          await TBPeerManager.sendFile(peerId, file, (percent) => {
+            updateOverlay(file.name, percent);
+          });
+        } catch (err) {
+          console.error("[TBfile] erreur envoi fichier", err);
+        } finally {
+          hideOverlay();
+          input.remove();
+        }
       };
 
+      // déclenche le sélecteur
       input.click();
       return;
     }
-  });
+  };
+
+  // écoute en capture pour éviter que d'autres handlers interceptent le clic
+  document.addEventListener("click", clickHandler, true);
 }
