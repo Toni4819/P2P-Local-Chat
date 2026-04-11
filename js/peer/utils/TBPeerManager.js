@@ -1,4 +1,4 @@
-// TBPeerManager.js — transfert chunké pipeline ACK
+// TBPeerManager.js — transfert chunké pipeline ACK (robuste)
 
 import { PeerManager } from "./PeerManager.js";
 
@@ -8,7 +8,7 @@ export const TBPeerManager = {
 
   receiving: {},
 
-  WINDOW_SIZE: 4, // fenêtre glissante (4 chunks simultanés)
+  WINDOW_SIZE: 4, // chunks en vol simultanés
   CHUNK_SIZE: 16384,
 
   attach(peerId) {
@@ -20,19 +20,28 @@ export const TBPeerManager = {
 
     conn.on("data", (data) => {
       try {
+        // --- Messages JSON (string) ---
         if (typeof data === "string") {
           const msg = JSON.parse(data);
 
           if (msg.type === "file-meta") {
             this.onFileMessage?.(peerId, msg.name);
 
-            // ACK META
-            conn.send(
-              JSON.stringify({
-                type: "ack-meta",
-                name: msg.name,
-              }),
-            );
+            // init réception
+            if (!this.receiving[peerId]) this.receiving[peerId] = {};
+            this.receiving[peerId][msg.name] = {
+              chunks: [],
+              totalSize: msg.size,
+              mime: msg.mime,
+              received: 0,
+            };
+
+            conn.send(JSON.stringify({ type: "ack-meta", name: msg.name }));
+            return;
+          }
+
+          if (msg.type === "file-end") {
+            conn.send(JSON.stringify({ type: "ack-end" }));
             return;
           }
 
@@ -44,22 +53,23 @@ export const TBPeerManager = {
             this._handleAck(peerId, msg);
             return;
           }
-        }
 
-        if (data && typeof data === "object" && data.type === "file-chunk") {
-          this._receiveChunk(peerId, data);
-
-          // ACK CHUNK
-          conn.send({
-            type: "ack-chunk",
-            fileName: data.fileName,
-            index: data.index,
-          });
           return;
         }
 
-        if (typeof data === "string") {
-          // ignore other strings
+        // --- Chunks binaires (objet avec ArrayBuffer) ---
+        if (data && typeof data === "object" && data.type === "file-chunk") {
+          this._receiveChunk(peerId, data);
+
+          // ACK chunk — envoyé en string JSON pour cohérence
+          conn.send(
+            JSON.stringify({
+              type: "ack-chunk",
+              fileName: data.fileName,
+              index: data.index,
+            }),
+          );
+          return;
         }
       } catch (e) {
         console.error("[TBPeerManager] erreur data", e);
@@ -78,21 +88,37 @@ export const TBPeerManager = {
 
     const totalChunks = Math.ceil(file.size / this.CHUNK_SIZE);
 
-    // état d’envoi
+    // Cas fichier vide
+    if (file.size === 0) {
+      conn.send(
+        JSON.stringify({
+          type: "file-meta",
+          name: file.name,
+          size: 0,
+          mime: file.type,
+        }),
+      );
+      await this._waitAck(conn, "ack-meta");
+      conn.send(JSON.stringify({ type: "file-end" }));
+      await this._waitAck(conn, "ack-end");
+      onProgress?.(100);
+      return;
+    }
+
     const state = {
       file,
       conn,
-      nextToSend: 0,
-      acks: new Set(),
+      nextToSend: 0, // prochain index à envoyer
+      acks: new Set(), // chunks confirmés
       resolve: null,
+      reject: null,
       onProgress,
       totalChunks,
-      pendingAcks: new Set(),
     };
 
     this._sending = state;
 
-    // envoyer META
+    // 1. Envoyer META
     conn.send(
       JSON.stringify({
         type: "file-meta",
@@ -102,10 +128,10 @@ export const TBPeerManager = {
       }),
     );
 
-    // attendre ack-meta
+    // 2. Attendre ack-meta
     await this._waitAck(conn, "ack-meta");
 
-    // pipeline
+    // 3. Pipeline
     return new Promise((resolve, reject) => {
       state.resolve = resolve;
       state.reject = reject;
@@ -113,26 +139,26 @@ export const TBPeerManager = {
     });
   },
 
-  async _pumpWindow() {
+  _pumpWindow() {
     const s = this._sending;
     if (!s) return;
 
-    // envoyer autant que la fenêtre le permet
+    // Envoyer jusqu'à remplir la fenêtre glissante
     while (
       s.nextToSend < s.totalChunks &&
       s.nextToSend - s.acks.size < this.WINDOW_SIZE
     ) {
       this._sendChunk(s.nextToSend);
-      s.pendingAcks.add(s.nextToSend);
       s.nextToSend++;
     }
 
-    // terminé ?
+    // Tous les chunks ont été ACKés → fin
     if (s.acks.size >= s.totalChunks) {
       s.conn.send(JSON.stringify({ type: "file-end" }));
-      await this._waitAck(s.conn, "ack-end");
-      s.resolve();
-      this._sending = null;
+      this._waitAck(s.conn, "ack-end").then(() => {
+        s.resolve();
+        this._sending = null;
+      });
     }
   },
 
@@ -143,43 +169,51 @@ export const TBPeerManager = {
 
     const reader = new FileReader();
     reader.onload = () => {
+      // Vérifier que l'envoi est toujours en cours (pas annulé)
+      if (this._sending !== s) return;
+
       s.conn.send({
         type: "file-chunk",
         fileName: s.file.name,
         fileSize: s.file.size,
-        chunk: reader.result,
+        chunk: reader.result, // ArrayBuffer
         index,
       });
+    };
+    reader.onerror = () => {
+      console.error(`[TBPeerManager] Erreur lecture chunk ${index}`);
+      s.reject?.(new Error(`Lecture chunk ${index} échouée`));
     };
     reader.readAsArrayBuffer(slice);
   },
 
   /* ---------------------------------------------------------
-     Gestion des ACK
+     Gestion des ACK reçus
   --------------------------------------------------------- */
   _handleAck(peerId, msg) {
     const s = this._sending;
     if (!s) return;
 
     if (msg.type === "ack-chunk") {
-      // ack unique
-      if (!s.acks.has(msg.index)) {
-        s.acks.add(msg.index);
-        s.pendingAcks.delete(msg.index);
+      const idx = msg.index;
+      if (typeof idx !== "number") return;
+
+      if (!s.acks.has(idx)) {
+        s.acks.add(idx);
 
         const percent = Math.floor((s.acks.size / s.totalChunks) * 100);
         s.onProgress?.(percent);
 
-        // tenter d'envoyer plus
+        // Tenter d'envoyer les chunks suivants
         this._pumpWindow();
       }
     }
-
-    if (msg.type === "ack-end") {
-      // fin confirmée (rien à faire ici)
-    }
+    // ack-end est géré par _waitAck dans _pumpWindow
   },
 
+  /* ---------------------------------------------------------
+     Attente d'un ACK spécifique (one-shot)
+  --------------------------------------------------------- */
   _waitAck(conn, type) {
     return new Promise((resolve) => {
       const handler = (data) => {
@@ -187,12 +221,22 @@ export const TBPeerManager = {
           if (typeof data === "string") {
             const msg = JSON.parse(data);
             if (msg.type === type) {
-              conn.off && conn.off("data", handler);
+              // Retirer le listener après réception
+              if (conn.off) {
+                conn.off("data", handler);
+              } else if (conn._events?.data) {
+                // Fallback si off() non disponible
+                const listeners = conn._events.data;
+                if (Array.isArray(listeners)) {
+                  const i = listeners.indexOf(handler);
+                  if (i !== -1) listeners.splice(i, 1);
+                }
+              }
               resolve(msg);
             }
           }
         } catch (e) {
-          // ignore parse errors
+          // ignorer les erreurs de parse
         }
       };
 
@@ -204,27 +248,42 @@ export const TBPeerManager = {
      Réception des chunks
   --------------------------------------------------------- */
   _receiveChunk(peerId, data) {
+    // S'assurer que la structure existe (au cas où file-meta n'est pas arrivé avant)
     if (!this.receiving[peerId]) this.receiving[peerId] = {};
     if (!this.receiving[peerId][data.fileName]) {
       this.receiving[peerId][data.fileName] = {
         chunks: [],
         totalSize: data.fileSize,
+        mime: "",
         received: 0,
       };
     }
 
     const entry = this.receiving[peerId][data.fileName];
 
-    if (!entry.chunks[data.index]) {
-      entry.chunks[data.index] = data.chunk;
-      entry.received++;
-    }
+    // Déduplication : ignorer les chunks déjà reçus
+    if (entry.chunks[data.index] !== undefined) return;
+
+    entry.chunks[data.index] = data.chunk; // ArrayBuffer
+    entry.received++;
 
     const totalChunks = Math.ceil(entry.totalSize / this.CHUNK_SIZE);
 
     if (entry.received >= totalChunks) {
-      const blob = new Blob(entry.chunks);
-      const file = new File([blob], data.fileName);
+      // Reconstruire le fichier dans l'ordre
+      const orderedChunks = [];
+      for (let i = 0; i < totalChunks; i++) {
+        if (entry.chunks[i] === undefined) {
+          console.error(
+            `[TBPeerManager] chunk ${i} manquant pour ${data.fileName}`,
+          );
+          return; // Attendre que tous les chunks arrivent
+        }
+        orderedChunks.push(entry.chunks[i]);
+      }
+
+      const blob = new Blob(orderedChunks, { type: entry.mime || "" });
+      const file = new File([blob], data.fileName, { type: entry.mime || "" });
 
       delete this.receiving[peerId][data.fileName];
       if (Object.keys(this.receiving[peerId]).length === 0)
